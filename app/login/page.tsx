@@ -10,6 +10,8 @@ import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
 import { Car, Eye, EyeOff } from "lucide-react"
 import Link from "next/link"
+import { login } from "../api/login/auth"
+import { useRouter } from "next/navigation"
 
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
@@ -18,12 +20,25 @@ export default function LoginPage() {
     password: "",
   })
 
-  const handleLogin = (e: React.FormEvent) => {
-    e.preventDefault()
-    // Handle login logic here
-    console.log("Login attempt:", formData)
-    // Redirect to dashboard or home page
+const router = useRouter();
+
+const handleLogin = async (e: React.FormEvent) => {
+  e.preventDefault();
+  try {
+    const data = await login(formData); // récupère les infos utilisateur
+    alert("Connexion réussie !");
+    
+    if (data.is_admin) {
+      router.push("/admin");
+    } else {
+      router.push("/");
+    }
+  } catch (error: any) {
+    const message = error?.error || "Une erreur est survenue lors de la connexion.";
+    alert(message);
   }
+};
+
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white flex items-center justify-center p-4">

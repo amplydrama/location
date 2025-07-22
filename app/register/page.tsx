@@ -1,6 +1,7 @@
 "use client"
 
 import type React from "react"
+import { register } from "../api/register/auth"
 
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
@@ -17,15 +18,15 @@ export default function RegisterPage() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [acceptTerms, setAcceptTerms] = useState(false)
   const [formData, setFormData] = useState({
-    firstName: "",
-    lastName: "",
+    name: "",
+    username: "",
     email: "",
     phone: "",
     password: "",
     confirmPassword: "",
   })
 
-  const handleRegister = (e: React.FormEvent) => {
+  const handleRegister = async(e: React.FormEvent) => {
     e.preventDefault()
 
     if (formData.password !== formData.confirmPassword) {
@@ -38,9 +39,16 @@ export default function RegisterPage() {
       return
     }
 
-    // Handle registration logic here
-    console.log("Registration attempt:", formData)
-    // Redirect to login or dashboard
+    try {
+      const { confirmPassword, ...registerData } = formData // retire confirmPassword
+      await register(registerData)
+      alert("Inscription réussie ! Vous pouvez maintenant vous connecter.")
+      // Redirige vers la page de connexion
+      window.location.href = "/login"
+    } catch (error: any) {
+      alert(error?.error || "Erreur lors de l'inscription")
+    }
+
   }
 
   return (
@@ -64,22 +72,22 @@ export default function RegisterPage() {
             <form onSubmit={handleRegister} className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="firstName">Prénom</Label>
+                  <Label htmlFor="firstName">Nom complet</Label>
                   <Input
                     id="firstName"
                     placeholder="Jean"
-                    value={formData.firstName}
-                    onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                     required
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="lastName">Nom</Label>
+                  <Label htmlFor="lastName">Nom d'utilisateur</Label>
                   <Input
                     id="lastName"
                     placeholder="Dupont"
-                    value={formData.lastName}
-                    onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
+                    value={formData.username}
+                    onChange={(e) => setFormData({ ...formData, username: e.target.value })}
                     required
                   />
                 </div>

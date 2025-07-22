@@ -4,6 +4,7 @@ import type React from "react"
 import { useEffect, useState } from "react"
 import { usePathname, useRouter } from "next/navigation"
 import { Sidebar } from "@/components/admin/Sidebar"
+import  Cookies  from "js-cookie";
 
 export default function AdminLayout({
   children,
@@ -17,11 +18,11 @@ export default function AdminLayout({
 
   useEffect(() => {
     const checkAuth = () => {
-      const session = localStorage.getItem("adminSession")
+      const session = Cookies.get("adminSession")
       if (session) {
         setIsAuthenticated(true)
-      } else if (pathname !== "/admin/login") {
-        router.push("/admin/login")
+      } else if (pathname !== "/login") {
+        router.push("/login")
         return
       }
       setIsLoading(false)
@@ -31,7 +32,7 @@ export default function AdminLayout({
   }, [pathname, router])
 
   // Si on est sur la page de login, afficher seulement le contenu
-  if (pathname === "/admin/login") {
+  if (pathname === "/login") {
     return <>{children}</>
   }
 
