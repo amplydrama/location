@@ -1,4 +1,61 @@
+// app/api/chat/analytics/route.js
+
 import { type NextRequest, NextResponse } from "next/server"
+
+// --- DÉBUT DES MODIFICATIONS : NEUTRALISATION DU CODE ---
+
+// Nous commentons tout le code qui se connecte à la base de données
+// ou qui tente de faire des requêtes SQL directement depuis Next.js.
+
+export async function GET(request: NextRequest) {
+  try {
+    // Message de console pour indiquer que cette API route est neutralisée
+    console.warn("API Route /api/chat/analytics est actuellement neutralisée. Les données proviendront de valeurs par défaut.");
+
+    // Vous pouvez renvoyer des données par défaut ici,
+    // ou simplement un message indiquant que le service n'est pas encore actif.
+    // Cela permettra à votre frontend de se charger sans erreur.
+
+    return NextResponse.json({
+      success: true,
+      data: {
+        period: "7d", // Période par défaut
+        stats: {
+          total_conversations: 0,
+          completed_conversations: 0,
+          active_conversations: 0,
+          average_rating: null,
+          avg_duration_minutes: null,
+          avg_response_time: 0,
+          avg_resolution_time: 0,
+        },
+        dailyStats: [],
+        categoryStats: [],
+        agentStats: [],
+        // Vous pouvez ajouter un message pour le frontend pour l'informer
+        message: "Les données d'analyse ne sont pas encore disponibles car le backend n'est pas connecté."
+      },
+    });
+
+  } catch (error) {
+    // En cas d'erreur inattendue (ce qui devrait être rare avec le code neutralisé)
+    console.error("Erreur inattendue dans l'API Route /api/chat/analytics neutralisée:", error);
+    return NextResponse.json(
+      {
+        success: false,
+        error: "Fonctionnalité d'analyse temporairement indisponible.",
+        details: error instanceof Error ? error.message : "Erreur inconnue",
+      },
+      { status: 500 },
+    );
+  }
+}
+
+// --- FIN DES MODIFICATIONS : NEUTRALISATION DU CODE ---
+
+// Le code original est commenté ci-dessous, vous pouvez le supprimer complètement une fois que vous êtes sûr.
+/*
+// Ancien code (COMMENTÉ ET INACTIF)
 import { neon } from "@neondatabase/serverless"
 
 const sql = neon(process.env.DATABASE_URL!)
@@ -213,3 +270,4 @@ export async function GET(request: NextRequest) {
     )
   }
 }
+*/
