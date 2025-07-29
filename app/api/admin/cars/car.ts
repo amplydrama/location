@@ -24,19 +24,40 @@ export async function createCar(carData: CarData) {
 }
 
 
-export async function updateCar(carId: string, carData: CarData) {
+export async function updateCar(carId: string | undefined , carData: CarData | null) { // <<< IMPORTANT : carData peut être null
+  if (!carData) { // Vérification ajoutée pour s'assurer que carData n'est pas null
+    throw new Error("Les données du véhicule sont manquantes.");
+  }
+
   const formData = new FormData();
 
   Object.entries(carData).forEach(([key, value]) => {
+    // Vérifier si la valeur n'est pas undefined, null, ET qu'elle est d'un type gérable par FormData.append
+    // Pour les objets non-Blob/File qui ne sont pas des primitives, on les convertit en JSON string.
     if (value !== undefined && value !== null) {
-      formData.append(key, value);
+      if (typeof value === 'object' && value !== null && !(value instanceof Blob) && !(value instanceof File)) {
+        // Si c'est un objet (mais pas un Blob/File), convertissez-le en chaîne JSON.
+        // Cela est crucial pour des objets complexes comme 'features' si elles sont stockées en objet ou tableau.
+        // Par exemple, si features est un tableau ['GPS', 'AC'], il sera transformé en "[\"GPS\",\"AC\"]"
+        formData.append(key, JSON.stringify(value));
+      } else if (typeof value === 'boolean') {
+        // Les booléens doivent être convertis en string
+        formData.append(key, value.toString());
+      }
+      else {
+        // Pour les strings, numbers, Files, Blobs
+        formData.append(key, value as string | Blob); // Cast pour aider TypeScript, car `value` est `unknown` ici.
+      }
     }
   });
 
   try {
-    const response = await axiosInstance.put(`/cars/${carId}/`, formData, {
+    const response = await axiosInstance.put(`/car/cars/${carId}/`, formData, {
       headers: {
-        "Content-Type": "multipart/form-data",
+        // Ne définissez PAS "Content-Type" manuellement pour FormData si vous utilisez Axios.
+        // Axios et le navigateur le définiront correctement, y compris la 'boundary'.
+        // Le laisser commenté ou le retirer est la meilleure pratique ici.
+        // "Content-Type": "multipart/form-data",
       },
     });
     return response.data;
@@ -61,7 +82,7 @@ export async function getCar(){
  * @returns {Promise<CarData | null>} A promise that resolves to a CarData object or null if not found.
  * @throws {object} An error object with details if the API call fails.
  */
-export async function getCarBySlug(slug: string): Promise<CarData | null> {
+export async function getCarBySlug(slug: string | undefined): Promise<CarData | null> {
     try {
         const response = await axiosAuth.get(`/car/cars/${slug}/`); // Note the trailing slash if your DRF setup requires it
         return response.data;

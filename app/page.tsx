@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
+import Cookies from "js-cookie"
 
 // --- Lucide Icons Imports ---
 import { Calendar, Car, MapPin, Phone, Star, Users, Menu, Loader2 } from "lucide-react"
@@ -38,6 +39,7 @@ export default function HomePage() {
   const carsPerPage = 6; // Number of cars to display per page
   const totalPages = Math.ceil(allCars.length / carsPerPage);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const cook = Cookies.get("UserSession")
 
   // Effect to fetch all cars on component mount
   useEffect(() => {
@@ -123,6 +125,7 @@ export default function HomePage() {
     <div className="min-h-screen flex flex-col bg-gradient-to-b from-blue-50 to-white">
       {/* Header */}
       <header className="bg-white shadow-sm border-b fixed top-0 left-0 w-full z-50">
+        
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <Link href="/" className="flex items-center space-x-2">
@@ -147,12 +150,17 @@ export default function HomePage() {
               </Link>
             </nav>
             <div className="me:hidden xs:flex items-center space-x-4">
-              <Link href="/login">
-                <Button variant="outline">Connexion</Button>
-              </Link>
               <Link href="/register">
-                <Button>Inscription</Button>
-              </Link>
+                      <Button variant="outline">S'inscrire</Button>
+                  </Link>
+              {cook ?
+                      <Link href="/profile">
+                      <Button>Mon compte</Button>
+                      </Link> 
+                  :<Link href="/login">
+                      <Button>Connexion</Button>
+                  </Link>
+              }
             </div>
 
             {/* Mobile Menu Button (Hamburger): FLEX by default, HIDDEN from 'xs' (425px) upwards */}
@@ -168,13 +176,13 @@ export default function HomePage() {
 
             {isMobileMenuOpen && (
                 <div className="flex flex-col xs:hidden absolute top-16 left-0 w-full bg-white shadow-lg px-4 pt-2 pb-4 space-y-2 border-t border-gray-200">
-                    <Link href="/" className="block text-gray-700 hover:text-blue-600 py-2" onClick={() => setIsMobileMenuOpen(false)}>
+                    <Link href="/" className="block text-blue-600 font-medium py-2" onClick={() => setIsMobileMenuOpen(false)}>
                         Accueil
                     </Link>
                     <Link href="/vehicles" className="block text-gray-700 hover:text-blue-600 py-2" onClick={() => setIsMobileMenuOpen(false)}>
                         Véhicules
                     </Link>
-                    <Link href="/reservations" className="block text-blue-600 font-medium py-2" onClick={() => setIsMobileMenuOpen(false)}>
+                    <Link href="/reservations" className="block text-gray-700 hover:text-blue-600 py-2" onClick={() => setIsMobileMenuOpen(false)}>
                         Mes réservations
                     </Link>
                     <Link href="/about" className="block text-gray-700 hover:text-blue-600 py-2" onClick={() => setIsMobileMenuOpen(false)}>
@@ -184,12 +192,17 @@ export default function HomePage() {
                         Contact
                     </Link>
                     <div className="pt-4 space-y-2 border-t border-gray-100">
-                        <Link href="/login">
-                            <Button variant="outline" className="w-full" onClick={() => setIsMobileMenuOpen(false)}>Connexion</Button>
+                        <Link href="/register" onClick={() => setIsMobileMenuOpen(false)}>
+                        <Button className="w-full mt-2" variant="outline">S'inscrire</Button>
                         </Link>
-                        <Link href="/dashboard">
-                            <Button className="w-full" onClick={() => setIsMobileMenuOpen(false)}>Mon compte</Button>
-                        </Link>
+                        { cook ?
+                            <Link href="/profile">
+                                <Button className="w-full mt-2" onClick={() => setIsMobileMenuOpen(false)}>Mon compte</Button>
+                            </Link>
+                            :<Link href="/login">
+                                <Button className="w-full mt-2" onClick={() => setIsMobileMenuOpen(false)}>Connexion</Button>
+                            </Link>
+                        }
                     </div>
                 </div>
             )}

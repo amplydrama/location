@@ -12,6 +12,8 @@ import { Separator } from "@/components/ui/separator"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Car, Eye, EyeOff } from "lucide-react"
 import Link from "next/link"
+import toast from "react-hot-toast"
+
 
 export default function RegisterPage() {
   const [showPassword, setShowPassword] = useState(false)
@@ -21,7 +23,7 @@ export default function RegisterPage() {
     name: "",
     username: "",
     email: "",
-    phone: "",
+    phone_number: "",
     password: "",
     confirmPassword: "",
   })
@@ -30,23 +32,23 @@ export default function RegisterPage() {
     e.preventDefault()
 
     if (formData.password !== formData.confirmPassword) {
-      alert("Les mots de passe ne correspondent pas")
+      toast.error("Les mots de passe ne correspondent pas")
       return
     }
 
     if (!acceptTerms) {
-      alert("Veuillez accepter les conditions d'utilisation")
+      toast.error("Veuillez accepter les conditions d'utilisation")
       return
     }
 
     try {
       const { confirmPassword, ...registerData } = formData // retire confirmPassword
       await register(registerData)
-      alert("Inscription réussie ! Vous pouvez maintenant vous connecter.")
+      toast.success("Inscription réussie ! Vous pouvez maintenant vous connecter.")
       // Redirige vers la page de connexion
       window.location.href = "/login"
     } catch (error: any) {
-      alert(error?.error || "Erreur lors de l'inscription")
+      toast.error(error?.error || "Erreur lors de l'inscription")
     }
 
   }
@@ -106,13 +108,13 @@ export default function RegisterPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="phone">Numéro de téléphone</Label>
+                <Label htmlFor="phone_number">Numéro de téléphone_number</Label>
                 <Input
-                  id="phone"
+                  id="phone_number"
                   type="tel"
                   placeholder="+237 6XX XXX XXX"
-                  value={formData.phone}
-                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                  value={formData.phone_number}
+                  onChange={(e) => setFormData({ ...formData, phone_number: e.target.value })}
                   required
                 />
               </div>

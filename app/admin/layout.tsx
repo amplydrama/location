@@ -5,6 +5,7 @@ import { useEffect, useState } from "react"
 import { usePathname, useRouter } from "next/navigation"
 import { Sidebar } from "@/components/admin/Sidebar"
 import  Cookies  from "js-cookie";
+import { Toaster } from 'react-hot-toast';
 
 export default function AdminLayout({
   children,
@@ -54,6 +55,29 @@ export default function AdminLayout({
     <div className="flex h-screen bg-gray-50">
       <Sidebar />
       <main className="flex-1 overflow-auto">
+        <Toaster
+          position="bottom-right" // Position des toasts
+          reverseOrder={false}     // Pour que les nouveaux toasts apparaissent en bas
+          toastOptions={{
+            // Styles pour tous les toasts
+            style: {
+              background: '#363636',
+              color: '#fff',
+            },
+            // Styles pour les succès
+            success: {
+              style: {
+                background: '#4CAF50', // Vert pour le succès
+              },
+            },
+            // Styles pour les erreurs
+            error: {
+              style: {
+                background: '#F44336', // Rouge pour l'erreur
+              },
+            },
+          }}
+        />
         <div className="p-6">{children}</div>
       </main>
     </div>

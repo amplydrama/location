@@ -12,6 +12,7 @@ import { Car, Eye, EyeOff } from "lucide-react"
 import Link from "next/link"
 import { login } from "../api/login/auth"
 import { useRouter } from "next/navigation"
+import toast from "react-hot-toast"
 
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
@@ -26,7 +27,7 @@ const handleLogin = async (e: React.FormEvent) => {
   e.preventDefault();
   try {
     const data = await login(formData); // récupère les infos utilisateur
-    alert("Connexion réussie !");
+    toast.success("Connexion réussie vous allez etre rediriger!");
     
     if (data.is_admin) {
       router.push("/admin");
@@ -35,7 +36,7 @@ const handleLogin = async (e: React.FormEvent) => {
     }
   } catch (error: any) {
     const message = error?.error || "Une erreur est survenue lors de la connexion.";
-    alert(message);
+    toast.error(message);
   }
 };
 
@@ -99,7 +100,8 @@ const handleLogin = async (e: React.FormEvent) => {
               </div>
 
               <div className="flex items-center justify-between">
-                <Link href="/forgot-password" className="text-sm text-blue-600 hover:text-blue-800">
+                {/* MODIFICATION ICI : Changer le chemin du lien "Mot de passe oublié ?" */}
+                <Link href="/request-password-reset" className="text-sm text-blue-600 hover:text-blue-800">
                   Mot de passe oublié ?
                 </Link>
               </div>

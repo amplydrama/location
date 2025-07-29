@@ -17,215 +17,210 @@ import {
 } from "@/components/ui/dialog"
 import { Search, Download, Eye, Mail, Phone, MapPin, Calendar, CreditCard, Star, Users, TrendingUp } from "lucide-react"
 import { exportToCSV } from "@/lib/csv-export"
+import { getAllUsers, UserData } from "@/app/api/login/auth" // Assurez-vous que ce chemin est correct
+import toast from "react-hot-toast"
+import { getBooking } from "@/app/api/bookings/book"
+import { Booking } from "../bookings/page"
+// REMARQUE IMPORTANTE : Le "Mock data pour les clients" doit être supprimé ou commenté
+// si vous ne l'utilisez plus pour éviter les conflits et vous baser uniquement sur l'API.
+// Par exemple:
+// const mockCustomers = [...]
+// Vous pouvez le garder pour le développement initial, mais il devra être retiré.
 
-// Mock data pour les clients
-const customers = [
-  {
-    id: 1,
-    name: "Jean Dupont",
-    email: "jean.dupont@email.com",
-    phone: "+237 677 123 456",
-    address: "Akwa, Douala",
-    city: "Douala",
-    dateJoined: "2023-06-15",
-    totalBookings: 5,
-    totalSpent: 425000,
-    lastBooking: "2024-01-15",
-    status: "Actif",
-    customerType: "Particulier",
-    rating: 4.8,
-    preferredVehicles: ["Berline", "SUV"],
-    paymentMethods: ["MTN MoMo", "Orange Money"],
-    notes: "Client VIP - Service premium",
-    bookingHistory: [
-      { date: "2024-01-15", vehicle: "Toyota Corolla", amount: 75000, status: "Terminée" },
-      { date: "2023-12-20", vehicle: "Nissan Pathfinder", amount: 180000, status: "Terminée" },
-      { date: "2023-11-10", vehicle: "Toyota Corolla", amount: 50000, status: "Terminée" },
-    ],
-  },
-  {
-    id: 2,
-    name: "Marie Ngono",
-    email: "marie.ngono@email.com",
-    phone: "+237 699 987 654",
-    address: "Bastos, Yaoundé",
-    city: "Yaoundé",
-    dateJoined: "2023-08-22",
-    totalBookings: 3,
-    totalSpent: 320000,
-    lastBooking: "2024-01-16",
-    status: "Actif",
-    customerType: "Entreprise",
-    rating: 4.6,
-    preferredVehicles: ["SUV"],
-    paymentMethods: ["Orange Money"],
-    notes: "Directrice commerciale - Voyages d'affaires fréquents",
-    bookingHistory: [
-      { date: "2024-01-16", vehicle: "Nissan Pathfinder", amount: 180000, status: "En cours" },
-      { date: "2023-12-05", vehicle: "Toyota RAV4", amount: 90000, status: "Terminée" },
-      { date: "2023-10-15", vehicle: "Nissan Pathfinder", amount: 50000, status: "Terminée" },
-    ],
-  },
-  {
-    id: 3,
-    name: "Paul Mbarga",
-    email: "paul.mbarga@email.com",
-    phone: "+237 655 111 222",
-    address: "Bonanjo, Douala",
-    city: "Douala",
-    dateJoined: "2023-09-10",
-    totalBookings: 2,
-    totalSpent: 65000,
-    lastBooking: "2024-01-14",
-    status: "Actif",
-    customerType: "Étudiant",
-    rating: 4.2,
-    preferredVehicles: ["Économique"],
-    paymentMethods: ["MTN MoMo"],
-    notes: "Étudiant - Réductions appliquées",
-    bookingHistory: [
-      { date: "2024-01-14", vehicle: "Hyundai Accent", amount: 40000, status: "En attente" },
-      { date: "2023-11-20", vehicle: "Hyundai Accent", amount: 25000, status: "Terminée" },
-    ],
-  },
-  {
-    id: 4,
-    name: "Fatima Bello",
-    email: "fatima.bello@email.com",
-    phone: "+237 677 333 444",
-    address: "Melen, Yaoundé",
-    city: "Yaoundé",
-    dateJoined: "2023-05-30",
-    totalBookings: 4,
-    totalSpent: 380000,
-    lastBooking: "2024-01-12",
-    status: "Actif",
-    customerType: "Diplomate",
-    rating: 4.9,
-    preferredVehicles: ["SUV", "Luxe"],
-    paymentMethods: ["Orange Money"],
-    notes: "Mission diplomatique - Protocole spécial",
-    bookingHistory: [
-      { date: "2024-01-12", vehicle: "Toyota RAV4", amount: 90000, status: "Terminée" },
-      { date: "2023-12-15", vehicle: "Nissan Pathfinder", amount: 120000, status: "Terminée" },
-      { date: "2023-11-05", vehicle: "Toyota RAV4", amount: 80000, status: "Terminée" },
-    ],
-  },
-  {
-    id: 5,
-    name: "Dr. Michel Atangana",
-    email: "m.atangana@hopital.cm",
-    phone: "+237 699 555 666",
-    address: "Omnisport, Yaoundé",
-    city: "Yaoundé",
-    dateJoined: "2023-03-12",
-    totalBookings: 8,
-    totalSpent: 720000,
-    lastBooking: "2024-01-08",
-    status: "VIP",
-    customerType: "Professionnel",
-    rating: 5.0,
-    preferredVehicles: ["Berline", "SUV"],
-    paymentMethods: ["MTN MoMo", "Orange Money"],
-    notes: "Médecin - Urgences médicales prioritaires",
-    bookingHistory: [
-      { date: "2024-01-08", vehicle: "Toyota Corolla", amount: 60000, status: "Terminée" },
-      { date: "2023-12-28", vehicle: "Nissan Pathfinder", amount: 100000, status: "Terminée" },
-      { date: "2023-12-10", vehicle: "Toyota Corolla", amount: 45000, status: "Terminée" },
-    ],
-  },
-]
 
 export default function CustomersPage() {
-  const [filteredCustomers, setFilteredCustomers] = useState(customers)
-  const [searchTerm, setSearchTerm] = useState("")
-  const [statusFilter, setStatusFilter] = useState("all")
-  const [typeFilter, setTypeFilter] = useState("all")
-  const [selectedCustomer, setSelectedCustomer] = useState<any>(null)
-  const [isViewDialogOpen, setIsViewDialogOpen] = useState(false)
+  // L'état 'users' contiendra les données brutes de l'API
+  const [users, setUsers] = useState<UserData[]>([]);
+  // L'état 'filteredCustomers' sera la liste affichée, basée sur 'users' après filtrage
+  const [filteredCustomers, setFilteredCustomers] = useState<UserData[]>([]);
+  const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [typeFilter, setTypeFilter] = useState("all"); // Attention: le type client n'est pas directement dans UserData
+  const [selectedCustomer, setSelectedCustomer] = useState<UserData | null>(null); // Type le client sélectionné
 
-  // Filtrage des clients
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const [customerReservations, setCustomerReservations] = useState<Booking[]>([]);
+  // État pour gérer l'état de chargement des réservations
+  const [isLoadingReservations, setIsLoadingReservations] = useState(false);
+  // État pour gérer les erreurs lors de la récupération des réservations
+  const [reservationError, setReservationError] = useState<string | null>(null);
+
+
   useEffect(() => {
-    let filtered = customers
+    const fetchCustomerReservations = async () => {
+      // Vérifier si le dialogue est ouvert ET qu'un client est sélectionné ET qu'il a un email
+      if (isViewDialogOpen && selectedCustomer?.email) {
+        setIsLoadingReservations(true); // Démarre le chargement
+        setReservationError(null);     // Réinitialise les erreurs précédentes
+        try {
+          // Appel à la fonction getBooking avec l'email du client sélectionné
+          // (et optionnellement une limite, par exemple les 10 dernières réservations)
+          const data: Booking[] = await getBooking(selectedCustomer.email, 10); 
+          setCustomerReservations(data); // Met à jour l'état avec les réservations récupérées
+        } catch (error: any) {
+          console.error("Failed to fetch customer reservations:", error);
+          setReservationError(error.error || "Impossible de charger les réservations.");
+        } finally {
+          setIsLoadingReservations(false); // Termine le chargement, qu'il y ait eu succès ou échec
+        }
+      } else if (!isViewDialogOpen) {
+        // Réinitialiser les réservations et les erreurs lorsque le dialogue se ferme
+        setCustomerReservations([]);
+        setReservationError(null);
+      }
+    };
+
+    fetchCustomerReservations(); // Appelle la fonction de récupération
+  }, [isViewDialogOpen, selectedCustomer?.email]); // Dépendances du useEffect:
+  // Le hook se re-déclenchera si le dialogue s'ouvre/se ferme ou si l'email du client change.
+
+  // 1. **FETCH DES UTILISATEURS LORSQUE LE COMPOSANT MONTE**
+  useEffect(() => {
+    const fetchUsersData = async () => { // Renommé pour éviter la confusion avec le hook useState
+      setLoading(true);
+      setError(null);
+      try {
+        const fetchedUsers = await getAllUsers();
+        setUsers(fetchedUsers); // Met à jour l'état 'users' avec les données de l'API
+        // Initialise filteredCustomers avec toutes les données au premier chargement
+        setFilteredCustomers(fetchedUsers);
+      } catch (err: any) {
+        console.error("Erreur lors de la récupération des utilisateurs:", err);
+        setError(err.message || "Impossible de charger les utilisateurs.");
+        toast.error(err.message || "Échec du chargement des utilisateurs.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchUsersData();
+  }, []); // Exécute une seule fois au montage du composant
+
+  // 2. **LOGIQUE DE FILTRAGE DES UTILISATEURS**
+  // Ce useEffect s'exécutera à chaque fois que searchTerm, statusFilter, typeFilter ou 'users' (la liste brute) changent.
+  useEffect(() => {
+    let currentFilteredUsers = users; // Commence avec la liste complète des utilisateurs de l'API
 
     if (searchTerm) {
-      filtered = filtered.filter(
-        (customer) =>
-          customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          customer.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          customer.phone.includes(searchTerm),
-      )
+      const lowercasedSearchTerm = searchTerm.toLowerCase();
+      currentFilteredUsers = currentFilteredUsers.filter(
+        (user) =>
+          user.email.toLowerCase().includes(lowercasedSearchTerm) ||
+          // Utilisez 'username' ou 'name' selon ce qui est le plus pertinent pour la recherche de nom
+          (user.username && user.username.toLowerCase().includes(lowercasedSearchTerm)) || 
+          (user.name && user.name.toLowerCase().includes(lowercasedSearchTerm)) || 
+          (user.phone_number && user.phone_number.includes(lowercasedSearchTerm)), // Utilisez phone_number
+      );
     }
 
+    // Gestion du filtre de statut (is_active, is_email_verified, is_superuser)
+    // Les statuts "Actif", "VIP", "Inactif", "Suspendu" de votre mock data
+    // n'ont pas de correspondance directe avec UserData.
+    // Vous devez décider comment mapper ces statuts à is_active, is_email_verified, etc.
+    // Par exemple, "Actif" pourrait signifier is_active && is_email_verified
+    // "VIP" pourrait être un champ is_vip sur votre modèle User, ou basé sur totalBookings/totalSpent
+    // Pour l'instant, je vais adapter 'Actif' et 'Inactif' à 'is_active'.
+    // Les autres nécessiteraient une logique métier supplémentaire sur le backend ou le frontend.
     if (statusFilter !== "all") {
-      filtered = filtered.filter((customer) => customer.status === statusFilter)
+      currentFilteredUsers = currentFilteredUsers.filter((user) => {
+        if (statusFilter === "Actif") {
+          return user.is_active && user.is_email_verified; // Considéré actif si compte actif et email vérifié
+        }
+        if (statusFilter === "Inactif") {
+          return !user.is_active; // Considéré inactif si le compte n'est pas actif
+        }
+        // Pour "VIP", "Suspendu", vous devrez définir une logique basée sur vos données UserData.
+        // Si ces statuts existent sur votre modèle Django, ajoutez-les à UserData.
+        // Par exemple: if (statusFilter === "VIP") return user.is_vip;
+        return true; // Retourne tous les clients si le statut n'est pas mappé
+      });
     }
 
+    // Gestion du filtre de type (Particulier, Entreprise, etc.)
+    // UserData n'a pas de propriété 'customerType'.
+    // Vous devez ajouter ce champ à votre modèle User Django et à UserSerializer
+    // si vous voulez filtrer dessus. Pour l'instant, ce filtre ne fera rien d'utile.
     if (typeFilter !== "all") {
-      filtered = filtered.filter((customer) => customer.customerType === typeFilter)
+        // currentFilteredUsers = currentFilteredUsers.filter((user) => user.customerType === typeFilter);
+        // Cette ligne est commentée car 'customerType' n'existe pas dans UserData.
+        // Vous devrez implémenter une logique de type de client si votre backend la supporte.
     }
 
-    setFilteredCustomers(filtered)
-  }, [searchTerm, statusFilter, typeFilter])
+    setFilteredCustomers(currentFilteredUsers);
+  }, [searchTerm, statusFilter, typeFilter, users]); // Dépend de 'users' maintenant
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case "Actif":
-        return <Badge className="bg-green-100 text-green-800">Actif</Badge>
-      case "VIP":
-        return <Badge className="bg-purple-100 text-purple-800">VIP</Badge>
-      case "Inactif":
-        return <Badge className="bg-gray-100 text-gray-800">Inactif</Badge>
-      case "Suspendu":
-        return <Badge className="bg-red-100 text-red-800">Suspendu</Badge>
-      default:
-        return <Badge variant="outline">{status}</Badge>
+  // Adapter les badges de statut pour utiliser les propriétés de UserData
+  const getStatusBadge = (user: UserData) => {
+    if (!user.is_email_verified) {
+      return <Badge className="bg-red-100 text-red-800">Non Vérifié</Badge>;
     }
-  }
+    if (!user.is_active) {
+      return <Badge className="bg-gray-100 text-gray-800">Inactif</Badge>;
+    }
+    if (user.is_superuser) { // Exemple de "VIP" pour les administrateurs
+      return <Badge className="bg-purple-100 text-purple-800">Admin</Badge>;
+    }
+    // Si vous avez un champ 'is_suspended' ou une logique de suspension dans UserData
+    // if (user.is_suspended) { return <Badge className="bg-red-100 text-red-800">Suspendu</Badge>; }
 
+    return <Badge className="bg-green-100 text-green-800">Actif</Badge>; // Statut par défaut
+  };
+
+  // Le type de client n'est pas dans UserData, cette fonction est donc désactivée pour l'instant.
+  // Vous devrez ajouter 'customerType' à votre modèle User et à UserData si vous voulez l'utiliser.
   const getCustomerTypeBadge = (type: string) => {
-    switch (type) {
-      case "Particulier":
-        return <Badge variant="outline">Particulier</Badge>
-      case "Entreprise":
-        return <Badge className="bg-blue-100 text-blue-800">Entreprise</Badge>
-      case "Étudiant":
-        return <Badge className="bg-yellow-100 text-yellow-800">Étudiant</Badge>
-      case "Diplomate":
-        return <Badge className="bg-purple-100 text-purple-800">Diplomate</Badge>
-      case "Professionnel":
-        return <Badge className="bg-green-100 text-green-800">Professionnel</Badge>
-      default:
-        return <Badge variant="outline">{type}</Badge>
-    }
-  }
+    // Exemple : si vous aviez un champ 'type' dans UserData
+    // switch (type) {
+    //   case "Particulier": return <Badge variant="outline">Particulier</Badge>;
+    //   case "Entreprise": return <Badge className="bg-blue-100 text-blue-800">Entreprise</Badge>;
+    //   default: return <Badge variant="outline">{type}</Badge>;
+    // }
+    return <Badge variant="outline">N/A</Badge>; // Retourne N/A si le type n'est pas géré
+  };
 
-  const handleViewCustomer = (customer: any) => {
-    setSelectedCustomer(customer)
-    setIsViewDialogOpen(true)
-  }
+  const handleViewCustomer = (customer: UserData) => { // Type correctement 'customer'
+    setSelectedCustomer(customer);
+    setIsViewDialogOpen(true);
+  };
 
   const handleExportCSV = () => {
-    const csvData = filteredCustomers.map((customer) => ({
-      ID: customer.id,
-      Nom: customer.name,
-      Email: customer.email,
-      Téléphone: customer.phone,
-      Adresse: customer.address,
-      Ville: customer.city,
-      "Date inscription": customer.dateJoined,
-      "Nombre réservations": customer.totalBookings,
-      "Total dépensé (FCFA)": customer.totalSpent,
-      "Dernière réservation": customer.lastBooking,
-      Statut: customer.status,
-      "Type client": customer.customerType,
-      Note: customer.rating,
-      "Véhicules préférés": customer.preferredVehicles.join(", "),
-      "Moyens paiement": customer.paymentMethods.join(", "),
-      Notes: customer.notes,
-    }))
+    const csvData = filteredCustomers.map((user) => ({
+      ID: user.id,
+      Nom: user.name || user.username, // Utilise 'name' si disponible, sinon 'username'
+      Email: user.email,
+      Téléphone: user.phone_number || '', // Utilisez 'phone_number'
+      // Adresse et Ville ne sont pas dans UserData par défaut. Vous devez les ajouter à votre UserSerializer
+      // et à l'interface UserData si vous voulez les exporter.
+      // Adresse: user.address,
+      // Ville: user.city,
+      "Date inscription": new Date(user.date_joined).toLocaleDateString("fr-FR"), // Utilisez date_joined
+      // Ces champs (totalBookings, totalSpent, lastBooking, rating, preferredVehicles, paymentMethods, notes)
+      // ne sont PAS dans UserData par défaut. Vous devrez les obtenir via une autre API ou les ajouter
+      // à votre modèle User si vous voulez les afficher/exporter.
+      "Nombre réservations": 'N/A', // Donnée non présente dans UserData
+      "Total dépensé (FCFA)": 'N/A', // Donnée non présente dans UserData
+      "Dernière réservation": 'N/A', // Donnée non présente dans UserData
+      Statut: user.is_active && user.is_email_verified ? 'Actif' : 'Inactif/Non Vérifié', // Logique simplifiée
+      "Type client": 'N/A', // Donnée non présente dans UserData
+      Note: 'N/A', // Donnée non présente dans UserData
+      "Véhicules préférés": 'N/A', // Donnée non présente dans UserData
+      "Moyens paiement": 'N/A', // Donnée non présente dans UserData
+      Notes: 'N/A', // Donnée non présente dans UserData
+    }));
 
-    exportToCSV(csvData, `clients_${new Date().toISOString().split("T")[0]}`)
+    exportToCSV(csvData, `clients_${new Date().toISOString().split("T")[0]}`);
+  };
+
+  // --- RENDU DU COMPOSANT ---
+  if (loading) {
+    return <div className="p-4 text-center">Chargement des clients...</div>;
+  }
+
+  if (error) {
+    return <div className="p-4 text-center text-red-500">Erreur: {error}</div>;
   }
 
   return (
@@ -248,7 +243,8 @@ export default function CustomersPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">Total clients</p>
-                <p className="text-2xl font-bold">{customers.length}</p>
+                {/* Utilisez la longueur de 'users' qui contient tous les clients chargés */}
+                <p className="text-2xl font-bold">{users.length}</p>
               </div>
               <Users className="h-8 w-8 text-blue-600" />
             </div>
@@ -258,8 +254,9 @@ export default function CustomersPage() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Clients VIP</p>
-                <p className="text-2xl font-bold">{customers.filter((c) => c.status === "VIP").length}</p>
+                <p className="text-sm font-medium text-gray-600">Clients Admin</p>
+                {/* Adaptez pour compter les super-utilisateurs/administrateurs */}
+                <p className="text-2xl font-bold">{users.filter((u) => u.is_superuser).length}</p>
               </div>
               <Star className="h-8 w-8 text-purple-600" />
             </div>
@@ -270,9 +267,9 @@ export default function CustomersPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">Revenus totaux</p>
-                <p className="text-2xl font-bold">
-                  {customers.reduce((sum, c) => sum + c.totalSpent, 0).toLocaleString()} FCFA
-                </p>
+                {/* Ces données (totalSpent) ne sont pas dans UserData. Elles proviendraient de Payment/Reservation. */}
+                {/* Pour l'instant, affichez un placeholder ou récupérez-les via une autre API. */}
+                <p className="text-2xl font-bold">N/A FCFA</p>
               </div>
               <CreditCard className="h-8 w-8 text-green-600" />
             </div>
@@ -283,7 +280,8 @@ export default function CustomersPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">Nouveaux ce mois</p>
-                <p className="text-2xl font-bold">3</p>
+                {/* Nécessite une logique pour filtrer les utilisateurs par date d'inscription ce mois-ci */}
+                <p className="text-2xl font-bold">N/A</p>
               </div>
               <TrendingUp className="h-8 w-8 text-orange-600" />
             </div>
@@ -306,19 +304,23 @@ export default function CustomersPage() {
                 />
               </div>
             </div>
+            {/* Le filtre de statut est basé sur la logique 'is_active', 'is_email_verified' */}
             <Select value={statusFilter} onValueChange={setStatusFilter}>
               <SelectTrigger className="w-full md:w-48">
                 <SelectValue placeholder="Filtrer par statut" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Tous les statuts</SelectItem>
-                <SelectItem value="Actif">Actif</SelectItem>
-                <SelectItem value="VIP">VIP</SelectItem>
-                <SelectItem value="Inactif">Inactif</SelectItem>
-                <SelectItem value="Suspendu">Suspendu</SelectItem>
+                <SelectItem value="Actif">Actif (Vérifié & Actif)</SelectItem>
+                <SelectItem value="Inactif">Inactif (Désactivé)</SelectItem>
+                <SelectItem value="Non Vérifié">Email Non Vérifié</SelectItem> {/* Ajouté pour un meilleur filtrage */}
+                <SelectItem value="Admin">Administrateur</SelectItem> {/* Ajouté pour un meilleur filtrage */}
+                {/* Pour "VIP" ou "Suspendu", vous auriez besoin de champs spécifiques dans UserData */}
               </SelectContent>
             </Select>
-            <Select value={typeFilter} onValueChange={setTypeFilter}>
+            {/* Le filtre de type est commenté car 'customerType' n'est pas dans UserData */}
+            {/* Si vous ajoutez 'customerType' à UserData, décommentez et adaptez cette section */}
+            {/* <Select value={typeFilter} onValueChange={setTypeFilter}>
               <SelectTrigger className="w-full md:w-48">
                 <SelectValue placeholder="Filtrer par type" />
               </SelectTrigger>
@@ -330,7 +332,7 @@ export default function CustomersPage() {
                 <SelectItem value="Diplomate">Diplomate</SelectItem>
                 <SelectItem value="Professionnel">Professionnel</SelectItem>
               </SelectContent>
-            </Select>
+            </Select> */}
           </div>
         </CardContent>
       </Card>
@@ -343,67 +345,64 @@ export default function CustomersPage() {
               <TableRow>
                 <TableHead>Client</TableHead>
                 <TableHead>Contact</TableHead>
-                <TableHead>Type</TableHead>
-                <TableHead>Réservations</TableHead>
-                <TableHead>Total dépensé</TableHead>
-                <TableHead>Dernière visite</TableHead>
-                <TableHead>Statut</TableHead>
+                <TableHead>Statut</TableHead> {/* Renommé pour être plus générique */}
+                <TableHead>Infos Complémentaires</TableHead> {/* Renommé pour regrouper des infos */}
                 <TableHead>Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredCustomers.map((customer) => (
-                <TableRow key={customer.id}>
-                  <TableCell>
-                    <div>
-                      <div className="font-medium">{customer.name}</div>
-                      <div className="text-sm text-gray-500 flex items-center">
-                        <MapPin className="h-3 w-3 mr-1" />
-                        {customer.city}
-                      </div>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="space-y-1">
-                      <div className="flex items-center text-sm">
-                        <Mail className="h-3 w-3 mr-1 text-gray-400" />
-                        {customer.email}
-                      </div>
-                      <div className="flex items-center text-sm">
-                        <Phone className="h-3 w-3 mr-1 text-gray-400" />
-                        {customer.phone}
-                      </div>
-                    </div>
-                  </TableCell>
-                  <TableCell>{getCustomerTypeBadge(customer.customerType)}</TableCell>
-                  <TableCell>
-                    <div>
-                      <div className="font-medium">{customer.totalBookings}</div>
-                      <div className="text-sm text-gray-500 flex items-center">
-                        <Star className="h-3 w-3 mr-1 text-yellow-400" />
-                        {customer.rating}/5
-                      </div>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="font-medium">{customer.totalSpent.toLocaleString()} FCFA</div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="text-sm">
-                      <div>{customer.lastBooking}</div>
-                      <div className="text-gray-500">
-                        Membre depuis {new Date(customer.dateJoined).toLocaleDateString("fr-FR")}
-                      </div>
-                    </div>
-                  </TableCell>
-                  <TableCell>{getStatusBadge(customer.status)}</TableCell>
-                  <TableCell>
-                    <Button variant="ghost" size="sm" onClick={() => handleViewCustomer(customer)}>
-                      <Eye className="h-4 w-4" />
-                    </Button>
+              {filteredCustomers.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={5} className="text-center py-4">
+                    Aucun client trouvé avec les critères de recherche ou de filtre.
                   </TableCell>
                 </TableRow>
-              ))}
+              ) : (
+                filteredCustomers.map((user) => ( // Itération sur les 'users' filtrés
+                  <TableRow key={user.id}>
+                    <TableCell>
+                      <div>
+                        {/* Utilisez 'name' ou 'username' selon ce que vous préférez afficher comme nom principal */}
+                        <div className="font-medium">{user.name || user.username}</div>
+                        {/* L'adresse et la ville ne sont pas dans UserData, les afficher nécessiterait d'ajouter ces champs */}
+                        {/* <div className="text-sm text-gray-500 flex items-center">
+                          <MapPin className="h-3 w-3 mr-1" />
+                          {user.city}
+                        </div> */}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="space-y-1">
+                        <div className="flex items-center text-sm">
+                          <Mail className="h-3 w-3 mr-1 text-gray-400" />
+                          {user.email}
+                        </div>
+                        <div className="flex items-center text-sm">
+                          <Phone className="h-3 w-3 mr-1 text-gray-400" />
+                          {user.phone_number || 'N/A'} {/* Utilisez phone_number */}
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell>{getStatusBadge(user)}</TableCell> {/* Passe l'objet user entier */}
+                    <TableCell>
+                      <div className="text-sm">
+                         {/* Ces champs ne sont pas dans UserData par défaut */}
+                        <div>Email vérifié : {user.is_email_verified ? 'Oui' : 'Non'}</div>
+                        <div>Compte actif : {user.is_active ? 'Oui' : 'Non'}</div>
+                        <div>Admin : {user.is_superuser ? 'Oui' : 'Non'}</div>
+                        <div className="text-gray-500">
+                          Membre depuis {new Date(user.date_joined).toLocaleDateString("fr-FR")}
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Button variant="ghost" size="sm" onClick={() => handleViewCustomer(user)}>
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
             </TableBody>
           </Table>
         </CardContent>
@@ -411,116 +410,120 @@ export default function CustomersPage() {
 
       {/* Dialog de détails du client */}
       <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
-        <DialogContent className="max-w-4xl">
-          <DialogHeader>
-            <DialogTitle>Profil client - {selectedCustomer?.name}</DialogTitle>
-            <DialogDescription>Informations détaillées et historique du client</DialogDescription>
-          </DialogHeader>
-          {selectedCustomer && (
-            <div className="grid gap-6">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <Card>
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-sm">Informations personnelles</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-2">
-                    <div className="flex items-center text-sm">
-                      <Mail className="h-4 w-4 mr-2 text-gray-400" />
-                      {selectedCustomer.email}
-                    </div>
-                    <div className="flex items-center text-sm">
-                      <Phone className="h-4 w-4 mr-2 text-gray-400" />
-                      {selectedCustomer.phone}
-                    </div>
-                    <div className="flex items-center text-sm">
-                      <MapPin className="h-4 w-4 mr-2 text-gray-400" />
-                      {selectedCustomer.address}
-                    </div>
-                    <div className="flex items-center text-sm">
-                      <Calendar className="h-4 w-4 mr-2 text-gray-400" />
-                      Membre depuis {new Date(selectedCustomer.dateJoined).toLocaleDateString("fr-FR")}
-                    </div>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-sm">Statistiques</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span>Réservations:</span>
-                      <span className="font-medium">{selectedCustomer.totalBookings}</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span>Total dépensé:</span>
-                      <span className="font-medium">{selectedCustomer.totalSpent.toLocaleString()} FCFA</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span>Note moyenne:</span>
-                      <div className="flex items-center">
-                        <Star className="h-3 w-3 mr-1 text-yellow-400" />
-                        <span className="font-medium">{selectedCustomer.rating}/5</span>
-                      </div>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span>Dernière réservation:</span>
-                      <span className="font-medium">{selectedCustomer.lastBooking}</span>
-                    </div>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-sm">Préférences</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-2">
-                    <div>
-                      <div className="text-sm font-medium mb-1">Véhicules préférés:</div>
-                      <div className="flex flex-wrap gap-1">
-                        {selectedCustomer.preferredVehicles.map((vehicle: string, index: number) => (
-                          <Badge key={index} variant="outline" className="text-xs">
-                            {vehicle}
-                          </Badge>
-                        ))}
-                      </div>
-                    </div>
-                    <div>
-                      <div className="text-sm font-medium mb-1">Moyens de paiement:</div>
-                      <div className="flex flex-wrap gap-1">
-                        {selectedCustomer.paymentMethods.map((method: string, index: number) => (
-                          <Badge key={index} variant="outline" className="text-xs">
-                            {method}
-                          </Badge>
-                        ))}
-                      </div>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span>Type:</span>
-                      {getCustomerTypeBadge(selectedCustomer.customerType)}
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span>Statut:</span>
-                      {getStatusBadge(selectedCustomer.status)}
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-
-              {selectedCustomer.notes && (
-                <Card>
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-sm">Notes</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-sm text-gray-600">{selectedCustomer.notes}</p>
-                  </CardContent>
-                </Card>
-              )}
-
+      {/* Correction ici: Appliquer max-h-screen et overflow-y-auto à DialogContent */}
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto"> 
+        <DialogHeader>
+          <DialogTitle>Profil client - {selectedCustomer?.name || selectedCustomer?.username}</DialogTitle>
+          <DialogDescription>Informations détaillées et historique du client</DialogDescription>
+        </DialogHeader>
+        {selectedCustomer && (
+          <div className="grid gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <Card>
                 <CardHeader className="pb-3">
-                  <CardTitle className="text-sm">Historique des réservations</CardTitle>
+                  <CardTitle className="text-sm">Informations personnelles</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  <div className="flex items-center text-sm">
+                    <Mail className="h-4 w-4 mr-2 text-gray-400" />
+                    {selectedCustomer.email}
+                  </div>
+                  <div className="flex items-center text-sm">
+                    <Phone className="h-4 w-4 mr-2 text-gray-400" />
+                    {selectedCustomer.phone_number || 'N/A'}
+                  </div>
+                  <div className="flex items-center text-sm">
+                    <Calendar className="h-4 w-4 mr-2 text-gray-400" />
+                    Membre depuis {new Date(selectedCustomer.date_joined).toLocaleDateString("fr-FR")}
+                  </div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm">Statistiques</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span>Réservations:</span>
+                    <span className="font-medium">{customerReservations.length || 0}</span>
+                  </div>
+                  {/* Calcul du total dépensé à partir des réservations chargées */}
+                  <div className="flex justify-between text-sm">
+                    <span>Total dépensé:</span>
+                    <span className="font-medium">
+                      {/* Correction ici : Assurez-vous que estimated_total_price est un nombre */}
+                      {customerReservations.reduce((sum, res) => sum + (parseFloat(String(res.estimated_total_price)) || 0), 0).toFixed(2)} FCFA
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span>Note moyenne:</span>
+                    <div className="flex items-center">
+                      <Star className="h-3 w-3 mr-1 text-yellow-400" />
+                      <span className="font-medium">N/A /5</span> {/* Nécessite une logique de notation */}
+                    </div>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span>Dernière réservation:</span>
+                    <span className="font-medium">
+                      {customerReservations.length > 0
+                        ? new Date(customerReservations[0].created_at).toLocaleDateString("fr-FR")
+                        : 'N/A'}
+                    </span>
+                  </div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm">Préférences</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  <div>
+                    <div className="text-sm font-medium mb-1">Véhicules préférés:</div>
+                    <div className="flex flex-wrap gap-1">
+                      <Badge variant="outline" className="text-xs">N/A</Badge> {/* Ces données doivent venir du backend */}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-sm font-medium mb-1">Moyens de paiement:</div>
+                    <div className="flex flex-wrap gap-1">
+                      <Badge variant="outline" className="text-xs">N/A</Badge> {/* Ces données doivent venir du backend */}
+                    </div>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span>Type:</span>
+                    {getCustomerTypeBadge(selectedCustomer.is_customer ? 'Customer' : 'Other')}
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span>Statut:</span>
+                    {getStatusBadge(selectedCustomer)}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* La carte des notes n'est affichée que si selectedCustomer existe */}
+            {selectedCustomer && (
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm">Notes</CardTitle>
                 </CardHeader>
                 <CardContent>
+                  <p className="text-sm text-gray-600">Aucune note</p> {/* Si 'notes' est un champ dans UserData, affichez-le ici */}
+                </CardContent>
+              </Card>
+            )}
+
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm">Historique des réservations</CardTitle>
+              </CardHeader>
+              {/* Le max-h-[400px] est retiré d'ici car le défilement est géré par le DialogContent parent */}
+              <CardContent className="overflow-y-auto"> 
+                {isLoadingReservations ? (
+                  <div className="text-center text-gray-500 py-4">Chargement des réservations...</div>
+                ) : reservationError ? (
+                  <div className="text-center text-red-500 py-4">{reservationError}</div>
+                ) : (
                   <Table>
                     <TableHeader>
                       <TableRow>
@@ -531,32 +534,47 @@ export default function CustomersPage() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {selectedCustomer.bookingHistory.map((booking: any, index: number) => (
-                        <TableRow key={index}>
-                          <TableCell>{booking.date}</TableCell>
-                          <TableCell>{booking.vehicle}</TableCell>
-                          <TableCell>{booking.amount.toLocaleString()} FCFA</TableCell>
-                          <TableCell>
-                            <Badge variant={booking.status === "Terminée" ? "default" : "secondary"}>
-                              {booking.status}
-                            </Badge>
+                      {customerReservations.length > 0 ? (
+                        // Trie les réservations par date de création décroissante pour afficher la plus récente en premier
+                        customerReservations
+                          .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+                          .map((booking) => ( // Renommé 'reservation' en 'booking' pour correspondre à BookingData
+                            <TableRow key={booking.id}>
+                              <TableCell>
+                                {new Date(booking.start_date).toLocaleDateString("fr-FR")} -{" "}
+                                {new Date(booking.end_date).toLocaleDateString("fr-FR")}
+                              </TableCell>
+                              <TableCell>{booking.car_name || 'N/A'}</TableCell> {/* Utilise car_name */}
+                              <TableCell>
+                                {/* Correction ici : Assurez-vous que estimated_total_price est un nombre avant toFixed */}
+                                {booking.estimated_total_price !== null && booking.estimated_total_price !== undefined
+                                  ? `${parseFloat(String(booking.estimated_total_price)).toFixed(2)} FCFA`
+                                  : 'N/A'}
+                              </TableCell> {/* Utilise estimated_total_price */}
+                              <TableCell>{booking.status}</TableCell>
+                            </TableRow>
+                          ))
+                      ) : (
+                        <TableRow>
+                          <TableCell colSpan={4} className="text-center text-gray-500">
+                            Aucun historique de réservation disponible pour l'instant.
                           </TableCell>
                         </TableRow>
-                      ))}
+                      )}
                     </TableBody>
                   </Table>
-                </CardContent>
-              </Card>
-            </div>
-          )}
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsViewDialogOpen(false)}>
-              Fermer
-            </Button>
-            <Button>Contacter le client</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </div>
-  )
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        )}
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setIsViewDialogOpen(false)}>
+            Fermer
+          </Button>
+          <Button>Contacter le client</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>    </div>
+  );
 }

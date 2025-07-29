@@ -7,10 +7,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { User, Mail, Calendar, Shield, Key, Save, Upload } from "lucide-react";
+import { User, Mail, Calendar, Shield, Key, Save, Upload,Car,Menu } from "lucide-react";
 import axiosInstance from "@/utils/axios";
 import toast from "react-hot-toast";
-
+import Cookies from "js-cookie";
+import Link from "next/link";
 // Définition de l'interface pour les données de profil pour une meilleure typage
 interface UserProfile {
   id: number;
@@ -30,13 +31,15 @@ interface UserProfile {
 export default function AdminProfilePage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isUpdatingProfile, setIsUpdatingProfile] = useState(false);
-  
+  const cook = Cookies.get('UserSession')
+
   const [passwordData, setPasswordData] = useState({
     currentPassword: "",
     newPassword: "",
     confirmPassword: "",
   });
 
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false); // State for mobile menu
   const [profileData, setProfileData] = useState<UserProfile>({
     id: 0,
     username: "",
@@ -200,7 +203,98 @@ export default function AdminProfilePage() {
 
   return (
     <div className="space-y-6 p-4">
-      <div>
+
+        <header className="bg-white shadow-sm border-b fixed top-0 left-0 w-full z-50">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                    <div className="flex justify-between items-center h-16">
+                        <Link href="/" className="flex items-center space-x-2">
+                            <Car className="h-8 w-8 text-blue-600" />
+                            <span className="text-xl font-bold text-gray-900">CarLoc Cameroun</span>
+                        </Link>
+
+                        {/* Desktop Navigation: HIDDEN on 'xs' screens (<= 425px), FLEX otherwise (desktop) */}
+                        <nav className="me:hidden xs:flex space-x-8">
+                            <Link href="/" className="text-gray-700 hover:text-blue-600">
+                                Accueil
+                            </Link>
+                            <Link href="/vehicles" className="text-gray-700 hover:text-blue-600">
+                                Véhicules
+                            </Link>
+                            <Link href="/reservations" className="text-gray-700 hover:text-blue-600">
+                                Mes réservations
+                            </Link>
+                            <Link href="/about" className="text-gray-700 hover:text-blue-600">
+                                À propos
+                            </Link>
+                            <Link href="/contact" className="text-gray-700 hover:text-blue-600">
+                                Contact
+                            </Link>
+                        </nav>
+
+                        {/* Desktop Action Buttons: HIDDEN on 'xs' screens (<= 425px), FLEX otherwise (desktop) */}
+                        <div className="me:hidden xs:flex items-center space-x-4">
+                            <Link href="/register">
+                                    <Button variant="outline">S'inscrire</Button>
+                                </Link>
+                            {cook ?
+                                    <Link href="/profile">
+                                    <Button>Mon compte</Button>
+                                    </Link> 
+                                :<Link href="/login">
+                                    <Button>Connexion</Button>
+                                </Link>
+                            }
+                        </div>
+
+                        {/* Mobile Menu Button (Hamburger): FLEX by default, HIDDEN from 'xs' (425px) upwards */}
+                        <div className="flex xs:hidden items-center">
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                            >
+                                <Menu className="h-6 w-6" />
+                            </Button>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Mobile Menu Content: Appears when `isMobileMenuOpen` is true AND the screen is <= 425px */}
+                {isMobileMenuOpen && (
+                    <div className="flex flex-col xs:hidden absolute top-16 left-0 w-full bg-white shadow-lg px-4 pt-2 pb-4 space-y-2 border-t border-gray-200">
+                        <Link href="/" className="block text-gray-700 hover:text-blue-600 py-2" onClick={() => setIsMobileMenuOpen(false)}>
+                            Accueil
+                        </Link>
+                        <Link href="/vehicles" className="block text-gray-700 hover:text-blue-600 py-2" onClick={() => setIsMobileMenuOpen(false)}>
+                            Véhicules
+                        </Link>
+                        <Link href="/reservations" className="block text-gray-700 hover:text-blue-600 py-2" onClick={() => setIsMobileMenuOpen(false)}>
+                            Mes réservations
+                        </Link>
+                        <Link href="/about" className="block text-gray-700 hover:text-blue-600 py-2" onClick={() => setIsMobileMenuOpen(false)}>
+                            À propos
+                        </Link>
+                        <Link href="/contact" className="block text-gray-700 hover:text-blue-600 py-2" onClick={() => setIsMobileMenuOpen(false)}>
+                            Contact
+                        </Link>
+                        <div className="pt-4 space-y-2 border-t border-gray-100">
+                            <Link href="/register" onClick={() => setIsMobileMenuOpen(false)}>
+                            <Button className="w-full mt-2" variant="outline">S'inscrire</Button>
+                            </Link>
+                            { cook ?
+                                <Link href="/profile">
+                                    <Button className="w-full mt-2" onClick={() => setIsMobileMenuOpen(false)}>Mon compte</Button>
+                                </Link>
+                                :<Link href="/login">
+                                    <Button  className="w-full mt-2" onClick={() => setIsMobileMenuOpen(false)}>Connexion</Button>
+                                </Link>
+                            }
+                        </div>
+                    </div>
+                )}
+            </header>
+
+      <div className="pt-[70px]">
         <h1 className="text-3xl font-bold text-gray-900">Mon profil</h1>
         <p className="text-gray-600">Gérez vos informations personnelles et paramètres de sécurité</p>
       </div>
@@ -316,7 +410,7 @@ export default function AdminProfilePage() {
             </CardHeader>
             <CardContent className="text-center">
               <Avatar className="w-24 h-24 mx-auto mb-4">
-                <AvatarImage src={profileData.profile_picture ? "http:/127.0.0.1:8000/"+profileData.profile_picture : "" } alt="Photo de profil" />
+                <AvatarImage src={profileData.profile_picture || "/placeholder.svg"} alt="Photo de profil" />
                 <AvatarFallback className="text-2xl">
                   {profileData.username
                     ? profileData.username.split(" ").map((n) => n[0]).join("")

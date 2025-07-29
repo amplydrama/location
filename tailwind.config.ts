@@ -16,7 +16,7 @@ const config: Config = {
       // C'est ici que vous ajoutez vos propres écrans (breakpoints)
       screens: {
         'xs': '1024px', // Le breakpoint personnalisé pour les très petits écrans
-		'me': '465px', // Le breakpoint pour les écrans mobiles
+		'me': '320px', // Le breakpoint pour les écrans mobiles
       },
 	  
       colors: {

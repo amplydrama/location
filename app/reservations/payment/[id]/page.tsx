@@ -7,11 +7,12 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { CheckCircle, XCircle, Loader2, Calendar, DollarSign, User, Mail, Phone, MapPin, Car } from "lucide-react"
+import { CheckCircle, XCircle, Loader2, Calendar, DollarSign, User, Mail, Phone, MapPin, Car, Menu } from "lucide-react"
 
 // Importez votre instance axiosAuth pour les requêtes authentifiées
 import axiosInstance from "@/utils/axios" // Assurez-vous que le chemin est correct
 import Link from "next/link"
+import Cookies from "js-cookie"
 
 // Interface pour les données de réservation nécessaires au paiement et au récapitulatif
 interface BookingDetails {
@@ -46,7 +47,7 @@ const fetchBookingDetails = async (bookingId: string): Promise<BookingDetails> =
         throw error; // Propage l'erreur pour que le composant puisse la gérer
     }
 };
-
+const cook = Cookies.get("UserSession")
 // Composant pour afficher un message personnalisé (remplace alert())
 const MessageDialog = ({ isOpen, onOpenChange, title, description, type }: {
     isOpen: boolean;
@@ -79,7 +80,7 @@ const MessageDialog = ({ isOpen, onOpenChange, title, description, type }: {
 // Composant de la page de paiement
 export default function PaymentFormPage({ params }: { params: { id: string } }) {
     const { id } = params; // Récupère l'ID de réservation depuis les paramètres de l'URL
-
+    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false); // State for mobile menu
     const [bookingDetails, setBookingDetails] = useState<BookingDetails | null>(null);
     const [paymentAmount, setPaymentAmount] = useState<string>(""); // Montant à payer par l'utilisateur
     const [paymentMethod, setPaymentMethod] = useState<string>(""); // 'MTN' ou 'Orange'
@@ -251,9 +252,100 @@ export default function PaymentFormPage({ params }: { params: { id: string } }) 
     }
 
     return (
-        <div className="flex flex-col lg:flex-row items-start justify-center min-h-screen p-4 lg:p-8 space-y-8 lg:space-y-0 lg:space-x-8 max-w-6xl mx-auto">
+        <div>
+
+            <header className="bg-white shadow-sm border-b fixed top-0 left-0 w-full z-50">
+                            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                                <div className="flex justify-between items-center h-16">
+                                    <Link href="/" className="flex items-center space-x-2">
+                                        <Car className="h-8 w-8 text-blue-600" />
+                                        <span className="text-xl font-bold text-gray-900">CarLoc Cameroun</span>
+                                    </Link>
+            
+                                    {/* Desktop Navigation: HIDDEN on 'xs' screens (<= 425px), FLEX otherwise (desktop) */}
+                                    <nav className="me:hidden xs:flex space-x-8">
+                                        <Link href="/" className="text-gray-700 hover:text-blue-600">
+                                            Accueil
+                                        </Link>
+                                        <Link href="/vehicles" className="text-gray-700 hover:text-blue-600">
+                                            Véhicules
+                                        </Link>
+                                        <Link href="/reservations" className="text-gray-700 hover:text-blue-600">
+                                            Mes réservations
+                                        </Link>
+                                        <Link href="/about" className="text-gray-700 hover:text-blue-600">
+                                            À propos
+                                        </Link>
+                                        <Link href="/contact" className="text-gray-700 hover:text-blue-600">
+                                            Contact
+                                        </Link>
+                                    </nav>
+            
+                                    {/* Desktop Action Buttons: HIDDEN on 'xs' screens (<= 425px), FLEX otherwise (desktop) */}
+                                    <div className="me:hidden xs:flex items-center space-x-4">
+                                        <Link href="/register">
+                                                <Button variant="outline">S'inscrire</Button>
+                                            </Link>
+                                        {cook ?
+                                                <Link href="/profile">
+                                                <Button>Mon compte</Button>
+                                                </Link> 
+                                            :<Link href="/login">
+                                                <Button>Connexion</Button>
+                                            </Link>
+                                        }
+                                    </div>
+            
+                                    {/* Mobile Menu Button (Hamburger): FLEX by default, HIDDEN from 'xs' (425px) upwards */}
+                                    <div className="flex xs:hidden items-center">
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                                        >
+                                            <Menu className="h-6 w-6" />
+                                        </Button>
+                                    </div>
+                                </div>
+                            </div>
+            
+                            {/* Mobile Menu Content: Appears when `isMobileMenuOpen` is true AND the screen is <= 425px */}
+                            {isMobileMenuOpen && (
+                                <div className="flex flex-col xs:hidden absolute top-16 left-0 w-full bg-white shadow-lg px-4 pt-2 pb-4 space-y-2 border-t border-gray-200">
+                                    <Link href="/" className="block text-gray-700 hover:text-blue-600 py-2" onClick={() => setIsMobileMenuOpen(false)}>
+                                        Accueil
+                                    </Link>
+                                    <Link href="/vehicles" className="block text-gray-700 hover:text-blue-600 py-2" onClick={() => setIsMobileMenuOpen(false)}>
+                                        Véhicules
+                                    </Link>
+                                    <Link href="/reservations" className="block text-blue-600 font-medium py-2" onClick={() => setIsMobileMenuOpen(false)}>
+                                        Mes réservations
+                                    </Link>
+                                    <Link href="/about" className="block text-gray-700 hover:text-blue-600 py-2" onClick={() => setIsMobileMenuOpen(false)}>
+                                        À propos
+                                    </Link>
+                                    <Link href="/contact" className="block text-gray-700 hover:text-blue-600 py-2" onClick={() => setIsMobileMenuOpen(false)}>
+                                        Contact
+                                    </Link>
+                                    <div className="pt-4 space-y-2 border-t border-gray-100">
+                                        <Link href="/register" onClick={() => setIsMobileMenuOpen(false)}>
+                                        <Button className="w-full mt-2" variant="outline">S'inscrire</Button>
+                                        </Link>
+                                        { cook ?
+                                            <Link href="/profile">
+                                                <Button className="w-full mt-2" onClick={() => setIsMobileMenuOpen(false)}>Mon compte</Button>
+                                            </Link>
+                                            :<Link href="/login">
+                                                <Button  className="w-full mt-2" onClick={() => setIsMobileMenuOpen(false)}>Connexion</Button>
+                                            </Link>
+                                        }
+                                    </div>
+                                </div>
+                            )}
+                        </header>
             {/* Colonne de récapitulatif de la réservation (à gauche) */}
-            <Card className="w-full lg:w-1/2 shadow-lg rounded-lg flex-shrink-0">
+            <div className="flex flex-col lg:flex-row items-start justify-center min-h-screen p-4 lg:p-8 space-y-8 lg:space-y-0 lg:space-x-8 max-w-6xl mx-auto mt-20">
+                <Card className="w-full lg:w-1/2 shadow-lg rounded-lg flex-shrink-0 ">
                 <div className="flex justify-between items-center p-4 border-b">
                     <p className="text-blue-600 font-bold hover:blue-800"><Link href="\reservations" >Retour à mes reservations</Link></p>
                 </div>
@@ -430,5 +522,6 @@ export default function PaymentFormPage({ params }: { params: { id: string } }) 
                 type={messageDialog.type}
             />
         </div>
+            </div>
     );
 }

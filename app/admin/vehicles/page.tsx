@@ -11,11 +11,48 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Textarea } from "@/components/ui/textarea"
 import { Car, Plus, Edit, Eye, MapPin, Fuel, Users, Settings, Euro } from "lucide-react" // Ajout de l'icône Euro pour les prix
 import { ImageUpload } from "@/components/ui/image-upload"
-import { createCar, getCar } from "@/app/api/admin/cars/car"
-import { CarData } from "@/types/carData" // Importez CarData depuis son emplacement réel
+import { createCar, getCar,updateCar } from "@/app/api/admin/cars/car"
+import { CarData,EditCarData } from "@/types/carData" // Importez CarData depuis son emplacement réel
+import toast from "react-hot-toast" // Assurez-vous d'avoir installé react-hot-toast pour les notifications
 
 // Importation des composants Popover pour l'affichage des prix détaillés
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+
+
+const normalizeFeatures = (features: string[] | string | undefined | null): string[] => {
+    // Cas de base : si les features sont null, undefined, ou une chaîne vide, on retourne un tableau vide.
+    if (!features || (typeof features === 'string' && features.length === 0)) {
+        return [];
+    }
+
+    let tempFeatures: string[] = [];
+
+    // Cas 1: Si 'features' est un tableau
+    if (Array.isArray(features)) {
+        // Nous parcourons chaque élément du tableau.
+        // Un élément peut être "Climatisation" ou "Climatisation,GPS"
+        features.forEach(item => {
+            if (item && item.includes(',')) {
+                // Si l'élément est une chaîne contenant des virgules (ex: "Climatisation,GPS")
+                // On la divise et ajoute les parties à notre tableau temporaire.
+                tempFeatures.push(...item.split(',').map(f => f.trim()).filter(f => f.length > 0));
+            } else if (item) {
+                // Si l'élément est une chaîne simple (ex: "Climatisation")
+                // On l'ajoute directement (après nettoyage)
+                tempFeatures.push(item.trim());
+            }
+        });
+    }
+    // Cas 2: Si 'features' est une simple chaîne de caractères (par exemple, si l'API renvoie directement "Climatisation,GPS")
+    // Ceci est moins probable si vous avez confirmé que c'est TOUJOURS un tableau, mais c'est une sécurité.
+    else if (typeof features === 'string') {
+        tempFeatures.push(...features.split(',').map(f => f.trim()).filter(f => f.length > 0));
+    }
+
+    // Après avoir traité tous les cas, on s'assure qu'il n'y a pas de doublons
+    // et on retourne le tableau final.
+    return Array.from(new Set(tempFeatures)).filter(f => f.length > 0);
+};
 
 
 export default function VehiclesPage() {
@@ -31,7 +68,11 @@ export default function VehiclesPage() {
     const [isViewDialogOpen, setIsViewDialogOpen] = useState(false)
     const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
     const [vehicleImages, setVehicleImages] = useState<string>("") // Pour l'URL de l'image
-    
+
+    // États spécifiques pour la modale d'édition
+    const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+    const [editedVehicle, setEditedVehicle] = useState<CarData | null>(null);
+        
     // `newVehicle` pour le formulaire d'ajout, avec les nouveaux champs de prix
     const [newVehicle, setNewVehicle] = useState({
         brand: "",
@@ -88,6 +129,7 @@ export default function VehiclesPage() {
         fetchVehicles();
     }, []);
 
+    
     // --- EFFET POUR LE FILTRAGE DES VÉHICULES (DÉPEND DES FILTRES ET DES DONNÉES BRUTES) ---
     useEffect(() => {
         let currentFiltered = Array.isArray(vehicles) ? [...vehicles] : [];
@@ -146,6 +188,85 @@ export default function VehiclesPage() {
         setIsViewDialogOpen(true)
     }
 
+    const handleViewEditVehicle = (vehicle: CarData) => {
+        setEditedVehicle(vehicle)
+        setIsEditDialogOpen(true)
+    }
+
+    const handleEditChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { id, value } = e.target;
+    setEditedVehicle(prev => {
+        if (!prev) return null;
+        return { ...prev, [id]: value };
+    });
+};
+
+const handleSelectChange = (id: string, value: string) => {
+    setEditedVehicle(prev => {
+        if (!prev) return null;
+        return { ...prev, [id]: value };
+    });
+};
+
+    const handleEditFeaturesChange = (feature: string, isChecked: boolean) => {
+        setEditedVehicle(prev => {
+            if (!prev) return null;
+            const currentFeatures = normalizeFeatures(prev.features); // Utilise la fonction de normalisation
+
+            let updatedFeatures: string[];
+            if (isChecked) {
+                updatedFeatures = [...currentFeatures, feature];
+            } else {
+                updatedFeatures = currentFeatures.filter(f => f !== feature);
+            }
+            // IMPORTANT : décidez si vous voulez enregistrer 'features' en tant que tableau ou chaîne
+            // Si votre backend attend une chaîne unique (ex: "Climatisation,GPS"), faites :
+            // return { ...prev, features: updatedFeatures.join(',') };
+            // Si votre backend attend un tableau de chaînes (ex: ["Climatisation", "GPS"]), faites :
+            return { ...prev, features: updatedFeatures };
+        });
+    };
+
+    // Assurez-vous que cette fonction est placée dans la portée de votre composant principal
+    const handleImageChange = (newImageUrl: string) => { // <-- CHANGEMENT ICI : 'newImageUrl' est maintenant une string
+        setEditedVehicle(prev => {
+            if (!prev) return null;
+            // Puisque ImageUpload émet une seule string, nous l'assignons directement.
+            return { ...prev, image: newImageUrl || '' }; // Utilisation directe de newImageUrl
+        });
+    };
+
+    const handleSaveEdit = async (e: React.FormEvent) => { // <<< Rendre la fonction async
+    e.preventDefault(); // Empêche le rechargement de la page
+
+    if (!editedVehicle || !editedVehicle.slug) {
+        console.error("Impossible d'enregistrer: Véhicule édité ou slug manquant.");
+        return;
+    }
+
+    const id = editedVehicle.slug; // Utiliser editedVehicle.slug comme ID
+
+    try {
+        // Appeler la fonction updateCar et ATTENDRE sa réponse
+        const updatedCarResponse = await updateCar(id, editedVehicle);
+
+    
+        setVehicles(prevCars =>
+            prevCars.map(car =>
+                car.slug === id ? updatedCarResponse : car // Remplace le véhicule par la version mise à jour
+            )
+        );
+
+        setIsEditDialogOpen(false); // Ferme la modale
+        toast.success("Véhicule mis à jour avec succès !"); // Si vous utilisez une bibliothèque de toasts
+
+    } catch (error) {
+        console.error("Erreur lors de la mise à jour du véhicule:", error);
+    
+        toast.error("Échec de la mise à jour du véhicule."); // Si vous utilisez une bibliothèque de toasts
+    }
+};
+    
     const handleAddVehicle = async (e: React.FormEvent) => {
         e.preventDefault()
         
@@ -196,13 +317,16 @@ export default function VehiclesPage() {
                 price_WDT: "", price_WDO: "", price_WODT: "", price_WODO: "", // Réinitialisation des nouveaux prix
             });
             setVehicleImages("");
-            // Note: L'utilisation de `alert` bloque l'interface. Pour une meilleure UX, considérez un toast/notification.
+            toast.success("Véhicule ajouter avec success!");
         } catch (error: any) {
             console.error("Erreur lors de l'ajout du véhicule:", error)
-            alert("Erreur lors de l'ajout du véhicule : " + (error.response?.data?.detail || error.message || "Erreur inconnue"))
+            toast.error("echec de l'ajout du Véhicule!");
         }
     }
+    
 
+    
+    
     // --- RENDU CONDITIONNEL POUR LE CHARGEMENT ET LES ERREURS ---
     if (isLoading) {
         return (
@@ -653,7 +777,7 @@ export default function VehiclesPage() {
                                             <Button variant="ghost" size="sm" onClick={() => handleViewVehicle(vehicle)}>
                                                 <Eye className="h-4 w-4" />
                                             </Button>
-                                            <Button variant="ghost" size="sm">
+                                            <Button variant="ghost" size="sm" onClick={() => handleViewEditVehicle(vehicle)}>
                                                 <Edit className="h-4 w-4" />
                                             </Button>
                                         </div>
@@ -870,10 +994,293 @@ export default function VehiclesPage() {
                         <Button variant="outline" onClick={() => setIsViewDialogOpen(false)}>
                             Fermer
                         </Button>
-                        <Button>Modifier le véhicule</Button>
+                        <Button onClick={() => setIsEditDialogOpen(true)}>Modifier le véhicule</Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
+
+            <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+                <DialogTitle>
+                    Modifier le véhicule: {editedVehicle?.model || ''}
+                </DialogTitle>
+                <DialogDescription>
+                    Modifiez les informations du véhicule sélectionné.
+                </DialogDescription>
+            </DialogHeader>
+
+            {editedVehicle ? (
+                <form onSubmit={handleSaveEdit}> {/* L'événement onSubmit doit appeler handleSaveEdit */}
+                    <div className="grid gap-4 py-4 pr-4 max-h-[calc(90vh-200px)] overflow-y-auto">
+                        {/* Champ "Modèle" */}
+                        <div className="space-y-2">
+                            <Label htmlFor="model">Modèle du véhicule</Label>
+                            <Input
+                                id="model"
+                                value={editedVehicle.model || ''}
+                                onChange={handleEditChange} 
+                                placeholder="Modèle (ex: Corolla)"
+                                required
+                            />
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4">
+                            {/* Champ "Marque" */}
+                            <div className="space-y-2">
+                                <Label htmlFor="brand">Marque</Label>
+                                <Input
+                                    id="brand"
+                                    value={editedVehicle.brand || ''}
+                                    onChange={handleEditChange} 
+                                    placeholder="Toyota"
+                                    required
+                                />
+                            </div>
+                            {/* Champ "Année" */}
+                            <div className="space-y-2">
+                                <Label htmlFor="year">Année</Label>
+                                <Input
+                                    id="year"
+                                    type="number"
+                                    value={editedVehicle.year || ''}
+                                    onChange={handleEditChange} 
+                                    placeholder="2023"
+                                    required
+                                />
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4">
+                            {/* Champ "Type" */}
+                            <div className="space-y-2">
+                                <Label htmlFor="type">Type</Label>
+                                <Select
+                                    value={editedVehicle.type || ''}
+                                    onValueChange={(value) => handleSelectChange('type', value)} 
+                                    required
+                                >
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Sélectionner le type" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="Berline">Berline</SelectItem>
+                                        <SelectItem value="SUV">SUV</SelectItem>
+                                        <SelectItem value="Économique">Économique</SelectItem>
+                                        <SelectItem value="Pick-up">Pick-up</SelectItem>
+                                        <SelectItem value="Citadine">Citadine</SelectItem>
+                                        <SelectItem value="Luxe">Luxe</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            {/* Champ "Plaque d'immatriculation" */}
+                            <div className="space-y-2">
+                                <Label htmlFor="immatriculation">Plaque d'immatriculation</Label>
+                                <Input
+                                    id="immatriculation"
+                                    value={editedVehicle.immatriculation || ''}
+                                    onChange={handleEditChange} 
+                                    placeholder="LT-123-CM"
+                                    required
+                                />
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4">
+                            {/* Champ "Couleur" */}
+                            <div className="space-y-2">
+                                <Label htmlFor="color">Couleur</Label>
+                                <Input
+                                    id="color"
+                                    value={editedVehicle.color || ''}
+                                    onChange={handleEditChange} 
+                                    placeholder="Blanc"
+                                    required
+                                />
+                            </div>
+                            {/* Champ "Nombre de places" */}
+                            <div className="space-y-2">
+                                <Label htmlFor="seats">Nombre de places</Label>
+                                <Input
+                                    id="seats"
+                                    type="number"
+                                    value={editedVehicle.seats || ''}
+                                    onChange={handleEditChange} 
+                                    placeholder="5"
+                                    required
+                                />
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4">
+                            {/* Champ "Transmission" */}
+                            <div className="space-y-2">
+                                <Label htmlFor="transmission">Transmission</Label>
+                                <Select
+                                    value={editedVehicle.transmission || ''}
+                                    onValueChange={(value) => handleSelectChange('transmission', value)} 
+                                    required
+                                >
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Type" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="Manuelle">Manuelle</SelectItem>
+                                        <SelectItem value="Automatique">Automatique</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            {/* Champ "Carburant" */}
+                            <div className="space-y-2">
+                                <Label htmlFor="fuel_type">Carburant</Label>
+                                <Select
+                                    value={editedVehicle.fuel_type || ''}
+                                    onValueChange={(value) => handleSelectChange('fuel_type', value)} 
+                                    required
+                                >
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Type" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="Essence">Essence</SelectItem>
+                                        <SelectItem value="Diesel">Diesel</SelectItem>
+                                        <SelectItem value="Hybride">Hybride</SelectItem>
+                                        <SelectItem value="Électrique">Électrique</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        </div>
+
+                        {/* Champs de prix */}
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <Label htmlFor="price_WDT">Prix avec chauffeur (Ville)</Label>
+                                <Input
+                                    id="price_WDT"
+                                    type="number"
+                                    value={editedVehicle.price_WDT || ''}
+                                    onChange={handleEditChange} 
+                                    placeholder="Ex: 30000"
+                                    required
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="price_WDO">Prix avec chauffeur (Hors Ville)</Label>
+                                <Input
+                                    id="price_WDO"
+                                    type="number"
+                                    value={editedVehicle.price_WDO || ''}
+                                    onChange={handleEditChange} 
+                                    placeholder="Ex: 45000"
+                                    required
+                                />
+                            </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <Label htmlFor="price_WODT">Prix sans chauffeur (Ville)</Label>
+                                <Input
+                                    id="price_WODT"
+                                    type="number"
+                                    value={editedVehicle.price_WODT || ''}
+                                    onChange={handleEditChange} 
+                                    placeholder="Ex: 20000"
+                                    required
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="price_WODO">Prix sans chauffeur (Hors Ville)</Label>
+                                <Input
+                                    id="price_WODO"
+                                    type="number"
+                                    value={editedVehicle.price_WODO || ''}
+                                    onChange={handleEditChange} 
+                                    placeholder="Ex: 35000"
+                                    required
+                                />
+                            </div>
+                        </div>
+                        {/* Fin des champs de prix */}
+
+                        {/* Champ "Localisation" */}
+                        <div className="space-y-2">
+                            <Label htmlFor="location">Localisation</Label>
+                            <Select
+                                value={editedVehicle.location || ''}
+                                onValueChange={(value) => handleSelectChange('location', value)} 
+                                required
+                            >
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Sélectionner la ville" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="Douala">Douala</SelectItem>
+                                    <SelectItem value="Yaoundé">Yaoundé</SelectItem>
+                                    <SelectItem value="Bafoussam">Bafoussam</SelectItem>
+                                    <SelectItem value="Bamenda">Bamenda</SelectItem>
+                                    <SelectItem value="Garoua">Garoua</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        {/* Champ "Équipements" (Features) */}
+                        <div className="space-y-2">
+                            <Label>Équipements</Label>
+                            <div className="flex flex-wrap gap-3">
+                                {["Climatisation", "GPS", "Assistance", "Bluetooth", "Caméra de recul", "Sièges chauffants", "ABS", "Airbags"].map((feature) => {
+                                    const normalizedVehicleFeatures = normalizeFeatures(editedVehicle?.features);
+                                    // Le console.log est utile pour le débogage, mais peut être retiré en production
+                                    
+                                    return (
+                                        <label key={feature} className="flex items-center gap-1 text-sm cursor-pointer">
+                                            <input
+                                                type="checkbox"
+                                                checked={normalizedVehicleFeatures.includes(feature)}
+                                                onChange={(e) => handleEditFeaturesChange(feature, e.target.checked)} 
+                                            />
+                                            {feature}
+                                        </label>
+                                    );
+                                })}
+                            </div>
+                        </div>
+
+                        {/* Champ "Description" */}
+                        <div className="space-y-2">
+                            <Label htmlFor="description">Description</Label>
+                            <Textarea
+                                id="description"
+                                value={editedVehicle.description || ''}
+                                onChange={handleEditChange} 
+                                placeholder="Description du véhicule..."
+                                required
+                            />
+                        </div>
+
+                        {/* Champ "Image du véhicule" avec ImageUpload */}
+                        <div className="space-y-2">
+                            <Label>Image du véhicule</Label>
+                            <ImageUpload
+                                images={editedVehicle.image}
+                                onImagesChange={handleImageChange}
+                            />
+                        </div>
+                    </div>
+
+                    <DialogFooter className="mt-4">
+                        <Button variant="outline" onClick={() => setIsEditDialogOpen(false)} type="button">
+                            Annuler
+                        </Button>
+                        <Button type="submit">Enregistrer les modifications</Button>
+                    </DialogFooter>
+                </form>
+            ) : (
+                <div className="flex items-center justify-center h-48 text-gray-500">
+                    <p>Aucune donnée de véhicule à afficher pour l'édition. Veuillez sélectionner un véhicule.</p>
+                </div>
+            )}
+        </DialogContent>
+    </Dialog>
         </div>
     )
 }

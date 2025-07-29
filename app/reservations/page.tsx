@@ -19,9 +19,10 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 // Import your axiosAuth instance for authenticated requests
 import { axiosAuth } from "@/utils/axios"; // Ensure the path is correct
 import { getBooking } from "../api/bookings/book"; // Ensure the path is correct
+import Cookies from "js-cookie";
 
 // Interface for booking data received from the API, strictly based on the provided response
-interface BookingData {
+export interface BookingData {
     id: number;
     start_date: string;
     end_date: string;
@@ -178,6 +179,8 @@ export default function UserBookingsPage() {
         // Implement logic to redirect to the payment page here
     };
 
+    const cook =Cookies.get("UserSession")
+
     if (isLoading) {
         return (
             <div className="flex justify-center items-center h-screen">
@@ -194,6 +197,8 @@ export default function UserBookingsPage() {
             </div>
         );
     }
+
+
 
     return (
         <div className="relative min-h-screen flex flex-col">
@@ -227,12 +232,17 @@ export default function UserBookingsPage() {
 
                         {/* Desktop Action Buttons: HIDDEN on 'xs' screens (<= 425px), FLEX otherwise (desktop) */}
                         <div className="me:hidden xs:flex items-center space-x-4">
-                            <Link href="/login">
-                                <Button variant="outline">Connexion</Button>
-                            </Link>
-                            <Link href="/dashboard">
-                                <Button>Mon compte</Button>
-                            </Link>
+                            <Link href="/register">
+                                    <Button variant="outline">S'inscrire</Button>
+                                </Link>
+                            {cook ?
+                                    <Link href="/profile">
+                                    <Button>Mon compte</Button>
+                                    </Link> 
+                                :<Link href="/login">
+                                    <Button>Connexion</Button>
+                                </Link>
+                            }
                         </div>
 
                         {/* Mobile Menu Button (Hamburger): FLEX by default, HIDDEN from 'xs' (425px) upwards */}
@@ -267,12 +277,17 @@ export default function UserBookingsPage() {
                             Contact
                         </Link>
                         <div className="pt-4 space-y-2 border-t border-gray-100">
-                            <Link href="/login">
-                                <Button variant="outline" className="w-full" onClick={() => setIsMobileMenuOpen(false)}>Connexion</Button>
+                            <Link href="/register" onClick={() => setIsMobileMenuOpen(false)}>
+                            <Button className="w-full mt-2" variant="outline">S'inscrire</Button>
                             </Link>
-                            <Link href="/dashboard">
-                                <Button className="w-full" onClick={() => setIsMobileMenuOpen(false)}>Mon compte</Button>
-                            </Link>
+                            { cook ?
+                                <Link href="/profile">
+                                    <Button className="w-full mt-2" onClick={() => setIsMobileMenuOpen(false)}>Mon compte</Button>
+                                </Link>
+                                :<Link href="/login">
+                                    <Button className="w-full mt-2" onClick={() => setIsMobileMenuOpen(false)}>Connexion</Button>
+                                </Link>
+                            }
                         </div>
                     </div>
                 )}
