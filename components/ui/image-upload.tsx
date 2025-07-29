@@ -6,68 +6,66 @@ import { useState, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Upload, X, ImageIcon, Camera } from "lucide-react"
+import { Upload, X, Camera } from "lucide-react" 
 import { cn } from "@/lib/utils"
+import axiosInstance from "@/utils/axios" // Your Axios instance
+import { isAxiosError } from "axios"; // <--- IMPORT isAxiosError DIRECTLY FROM 'axios'
+
 
 interface ImageUploadProps {
-  images: string[]
-  onImagesChange: (images: string[]) => void
-  maxImages?: number
+  images: string 
+  onImagesChange: (images: string) => void
   className?: string
 }
 
-export function ImageUpload({ images, onImagesChange, maxImages = 5, className }: ImageUploadProps) {
+export function ImageUpload({ images, onImagesChange, className }: ImageUploadProps) {
+  const maxImages = 1 
   const [isDragging, setIsDragging] = useState(false)
   const [uploading, setUploading] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const handleFileSelect = async (files: FileList | null) => {
-    if (!files) return
+    if (!files || files.length === 0) return
 
-    const fileArray = Array.from(files)
-    const validFiles = fileArray.filter((file) => {
-      const isImage = file.type.startsWith("image/")
-      const isValidSize = file.size <= 5 * 1024 * 1024 // 5MB max
-      return isImage && isValidSize
-    })
+    const file = files[0] 
+    
+    const isImage = file.type.startsWith("image/")
+    const isValidSize = file.size <= 5 * 1024 * 1024 // 5MB max
 
-    if (validFiles.length === 0) {
-      alert("Veuillez sélectionner des images valides (max 5MB chacune)")
-      return
-    }
-
-    if (images.length + validFiles.length > maxImages) {
-      alert(`Vous ne pouvez ajouter que ${maxImages} images maximum`)
+    if (!isImage || !isValidSize) {
+      alert("Veuillez sélectionner une image valide (PNG, JPG, WEBP, max 5MB)")
       return
     }
 
     setUploading(true)
 
     try {
-      const uploadPromises = validFiles.map(async (file) => {
-        const formData = new FormData()
-        formData.append("file", file)
+      const formData = new FormData()
+      formData.append("image", file)
 
-        const response = await fetch("/api/upload/vehicle-images", {
-          method: "POST",
-          body: formData,
-        })
+      const response = await axiosInstance.post("car/upload/vehicle-images/", formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data', 
+        },
+      });
 
-        if (!response.ok) {
-          throw new Error("Erreur lors de l'upload")
-        }
+      if (response.status !== 201) { 
+        throw new Error(`Erreur lors de l'upload: Statut ${response.status}`);
+      }
 
-        const data = await response.json()
-        return data.url
-      })
-
-      const uploadedUrls = await Promise.all(uploadPromises)
-      onImagesChange([...images, ...uploadedUrls])
+      const data = response.data; 
+      onImagesChange(data.url);
+      console.log(data.url)
     } catch (error) {
-      console.error("Erreur upload:", error)
-      alert("Erreur lors de l'upload des images")
+      console.error("Erreur upload:", error);
+      // --- MODIFICATION ICI: Utiliser isAxiosError directement ---
+      if (isAxiosError(error) && error.response) { 
+        alert(`Erreur lors de l'upload: ${error.response.data?.detail || error.response.statusText || error.message}`);
+      } else {
+        alert("Erreur lors de l'upload de l'image.");
+      }
     } finally {
-      setUploading(false)
+      setUploading(false);
     }
   }
 
@@ -87,26 +85,20 @@ export function ImageUpload({ images, onImagesChange, maxImages = 5, className }
     setIsDragging(false)
   }
 
-  const removeImage = (index: number) => {
-    const newImages = images.filter((_, i) => i !== index)
-    onImagesChange(newImages)
+  const removeImage = () => { 
+    onImagesChange("") 
   }
 
-  const moveImage = (fromIndex: number, toIndex: number) => {
-    const newImages = [...images]
-    const [movedImage] = newImages.splice(fromIndex, 1)
-    newImages.splice(toIndex, 0, movedImage)
-    onImagesChange(newImages)
-  }
+  const currentImage = images
 
   return (
     <div className={cn("space-y-4", className)}>
-      {/* Zone d'upload */}
       <Card
         className={cn(
           "border-2 border-dashed transition-colors cursor-pointer",
           isDragging ? "border-blue-500 bg-blue-50" : "border-gray-300 hover:border-gray-400",
           uploading && "opacity-50 cursor-not-allowed",
+          currentImage && "hidden" 
         )}
         onDrop={handleDrop}
         onDragOver={handleDragOver}
@@ -129,13 +121,13 @@ export function ImageUpload({ images, onImagesChange, maxImages = 5, className }
                 </div>
                 <div>
                   <p className="text-lg font-medium text-gray-900">
-                    Glissez vos images ici ou cliquez pour sélectionner
+                    Glissez votre image ici ou cliquez pour sélectionner
                   </p>
-                  <p className="text-sm text-gray-500 mt-1">PNG, JPG, WEBP jusqu'à 5MB • Maximum {maxImages} images</p>
+                  <p className="text-sm text-gray-500 mt-1">PNG, JPG, WEBP jusqu'à 5MB • Une seule image</p>
                 </div>
                 <Button variant="outline" type="button">
                   <Camera className="mr-2 h-4 w-4" />
-                  Choisir des images
+                  Choisir une image
                 </Button>
               </>
             )}
@@ -147,69 +139,51 @@ export function ImageUpload({ images, onImagesChange, maxImages = 5, className }
         ref={fileInputRef}
         type="file"
         accept="image/*"
-        multiple
+        multiple={false} 
         className="hidden"
         onChange={(e) => handleFileSelect(e.target.files)}
         disabled={uploading}
       />
 
-      {/* Prévisualisation des images */}
-      {images.length > 0 && (
+      {currentImage && ( 
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <h4 className="text-sm font-medium">
-              Images sélectionnées ({images.length}/{maxImages})
+              Image sélectionnée (1/1)
             </h4>
-            {images.length > 0 && (
-              <Badge variant="outline" className="text-xs">
-                {images[0] && "Image principale"}
-              </Badge>
-            )}
+            <Badge variant="outline" className="text-xs">
+              Image principale
+            </Badge>
           </div>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            {images.map((image, index) => (
-              <Card key={index} className="relative group overflow-hidden">
-                <div className="aspect-video relative">
-                  <img
-                    src={image || "/placeholder.svg"}
-                    alt={`Image ${index + 1}`}
-                    className="w-full h-full object-cover"
-                  />
-                  <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-all duration-200 flex items-center justify-center">
-                    <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex space-x-2">
-                      {index > 0 && (
-                        <Button
-                          size="sm"
-                          variant="secondary"
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            moveImage(index, 0)
-                          }}
-                          className="h-8 w-8 p-0"
-                        >
-                          <ImageIcon className="h-4 w-4" />
-                        </Button>
-                      )}
-                      <Button
-                        size="sm"
-                        variant="destructive"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          removeImage(index)
-                        }}
-                        className="h-8 w-8 p-0"
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    </div>
+          <div className="grid grid-cols-1"> 
+            <Card className="relative group overflow-hidden">
+              <div className="aspect-video relative">
+                <img
+                  src={currentImage || "/placeholder.svg"} 
+                  alt="Image du véhicule"
+                  className="w-full h-full object-cover"
+                />
+                <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-all duration-200 flex items-center justify-center">
+                  <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex space-x-2">
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        removeImage() 
+                      }}
+                      className="h-8 w-8 p-0"
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
                   </div>
-                  {index === 0 && <Badge className="absolute top-2 left-2 text-xs bg-blue-600">Principale</Badge>}
                 </div>
-              </Card>
-            ))}
+                <Badge className="absolute top-2 left-2 text-xs bg-blue-600">Principale</Badge>
+              </div>
+            </Card>
           </div>
           <p className="text-xs text-gray-500">
-            Cliquez sur l'icône image pour définir comme image principale • Cliquez sur X pour supprimer
+            Cliquez sur X pour supprimer l'image
           </p>
         </div>
       )}

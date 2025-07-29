@@ -1,6 +1,7 @@
 "use client"
 
 import type React from "react"
+import { register } from "../api/register/auth"
 
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
@@ -11,36 +12,45 @@ import { Separator } from "@/components/ui/separator"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Car, Eye, EyeOff } from "lucide-react"
 import Link from "next/link"
+import toast from "react-hot-toast"
+
 
 export default function RegisterPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [acceptTerms, setAcceptTerms] = useState(false)
   const [formData, setFormData] = useState({
-    firstName: "",
-    lastName: "",
+    name: "",
+    username: "",
     email: "",
-    phone: "",
+    phone_number: "",
     password: "",
     confirmPassword: "",
   })
 
-  const handleRegister = (e: React.FormEvent) => {
+  const handleRegister = async(e: React.FormEvent) => {
     e.preventDefault()
 
     if (formData.password !== formData.confirmPassword) {
-      alert("Les mots de passe ne correspondent pas")
+      toast.error("Les mots de passe ne correspondent pas")
       return
     }
 
     if (!acceptTerms) {
-      alert("Veuillez accepter les conditions d'utilisation")
+      toast.error("Veuillez accepter les conditions d'utilisation")
       return
     }
 
-    // Handle registration logic here
-    console.log("Registration attempt:", formData)
-    // Redirect to login or dashboard
+    try {
+      const { confirmPassword, ...registerData } = formData // retire confirmPassword
+      await register(registerData)
+      toast.success("Inscription réussie ! Vous pouvez maintenant vous connecter.")
+      // Redirige vers la page de connexion
+      window.location.href = "/login"
+    } catch (error: any) {
+      toast.error(error?.error || "Erreur lors de l'inscription")
+    }
+
   }
 
   return (
@@ -64,22 +74,22 @@ export default function RegisterPage() {
             <form onSubmit={handleRegister} className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="firstName">Prénom</Label>
+                  <Label htmlFor="firstName">Nom complet</Label>
                   <Input
                     id="firstName"
                     placeholder="Jean"
-                    value={formData.firstName}
-                    onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                     required
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="lastName">Nom</Label>
+                  <Label htmlFor="lastName">Nom d'utilisateur</Label>
                   <Input
                     id="lastName"
                     placeholder="Dupont"
-                    value={formData.lastName}
-                    onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
+                    value={formData.username}
+                    onChange={(e) => setFormData({ ...formData, username: e.target.value })}
                     required
                   />
                 </div>
@@ -98,13 +108,13 @@ export default function RegisterPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="phone">Numéro de téléphone</Label>
+                <Label htmlFor="phone_number">Numéro de téléphone_number</Label>
                 <Input
-                  id="phone"
+                  id="phone_number"
                   type="tel"
                   placeholder="+237 6XX XXX XXX"
-                  value={formData.phone}
-                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                  value={formData.phone_number}
+                  onChange={(e) => setFormData({ ...formData, phone_number: e.target.value })}
                   required
                 />
               </div>

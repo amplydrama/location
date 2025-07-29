@@ -3,9 +3,11 @@
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Car, Shield, MapPin, Phone, Mail, Award, CheckCircle, Heart, Target, Zap } from "lucide-react"
+import { Car, Shield, MapPin, Phone, Mail, Award, CheckCircle, Heart, Target, Zap, Menu } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
+import { useState } from "react"
+import Cookies from "js-cookie"
 
 const teamMembers = [
   {
@@ -93,24 +95,28 @@ const stats = [
   { number: "4", label: "Villes desservies" },
   { number: "3", label: "Années d'expérience" },
 ]
-
+const cook = Cookies.get("UserSession")
 export default function AboutPage() {
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   return (
     <div className="min-h-screen bg-white">
       {/* Header */}
-      <header className="bg-white shadow-sm border-b">
+      <header className="bg-white shadow-sm border-b fixed top-0 left-0 w-full z-50 ">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <Link href="/" className="flex items-center space-x-2">
               <Car className="h-8 w-8 text-blue-600" />
               <span className="text-xl font-bold text-gray-900">CarLoc Cameroun</span>
             </Link>
-            <nav className="hidden md:flex space-x-8">
+            <nav className="me:hidden xs:flex space-x-8">
               <Link href="/" className="text-gray-700 hover:text-blue-600">
                 Accueil
               </Link>
               <Link href="/vehicles" className="text-gray-700 hover:text-blue-600">
                 Véhicules
+              </Link>
+              <Link href="/reservations" className="text-gray-700 hover:text-blue-600">
+                Mes réservations
               </Link>
               <Link href="/about" className="text-blue-600 font-medium">
                 À propos
@@ -119,20 +125,67 @@ export default function AboutPage() {
                 Contact
               </Link>
             </nav>
-            <div className="flex items-center space-x-4">
-              <Link href="/login">
-                <Button variant="outline">Connexion</Button>
-              </Link>
+            <div className="me:hidden xs:flex items-center space-x-4">
               <Link href="/register">
-                <Button>Inscription</Button>
-              </Link>
+                      <Button variant="outline">S'inscrire</Button>
+                    </Link>
+              {cook ?
+                      <Link href="/profile">
+                        <Button>Mon compte</Button>
+                      </Link> 
+                    :<Link href="/login">
+                      <Button>Connexion</Button>
+                    </Link>
+              }
             </div>
+
+            <div className="flex xs:hidden items-center">
+                <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                >
+                    <Menu className="h-6 w-6" />
+                </Button>
+            </div>
+            {isMobileMenuOpen && (
+                <div className="flex flex-col xs:hidden absolute z-100 top-16 left-0 w-full bg-white shadow-lg px-4 pt-2 pb-4 space-y-2 border-t border-gray-200">
+                    <Link href="/" className="block text-gray-700 hover:text-blue-600 py-2" onClick={() => setIsMobileMenuOpen(false)}>
+                        Accueil
+                    </Link>
+                    <Link href="/vehicles" className="block text-gray-700 hover:text-blue-600 py-2" onClick={() => setIsMobileMenuOpen(false)}>
+                        Véhicules
+                    </Link>
+                    <Link href="/reservations" className="block text-gray-700 hover:text-blue-600 py-2" onClick={() => setIsMobileMenuOpen(false)}>
+                        Mes réservations
+                    </Link>
+                    <Link href="/about" className="block text-blue-600 font-medium py-2" onClick={() => setIsMobileMenuOpen(false)}>
+                        À propos
+                    </Link>
+                    <Link href="/contact" className="block text-gray-700 hover:text-blue-600 py-2" onClick={() => setIsMobileMenuOpen(false)}>
+                        Contact
+                    </Link>
+                    <div className="pt-4 space-y-2 border-t border-gray-100">
+                        <Link href="/register" onClick={() => setIsMobileMenuOpen(false)}>
+                            <Button className="w-full mt-2" variant="outline">S'inscrire</Button>
+                          </Link>
+                          { cook ?
+                                <Link href="/profile">
+                                    <Button className="w-full mt-2" onClick={() => setIsMobileMenuOpen(false)}>Mon compte</Button>
+                                </Link>
+                                :<Link href="/login">
+                                    <Button className="w-full mt-2" onClick={() => setIsMobileMenuOpen(false)}>Connexion</Button>
+                                </Link>
+                          }
+                    </div>
+                </div>
+            )}
           </div>
         </div>
       </header>
 
       {/* Hero Section */}
-      <section className="relative py-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-r from-blue-600 to-blue-800 text-white">
+      <section className="relative py-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-r from-blue-600 to-blue-800 text-white mt-[65px]">
         <div className="max-w-7xl mx-auto text-center">
           <h1 className="text-4xl md:text-6xl font-bold mb-6">
             À propos de <span className="text-yellow-400">CarLoc Cameroun</span>

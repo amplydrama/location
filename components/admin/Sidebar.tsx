@@ -3,6 +3,9 @@
 import { useState } from "react"
 import { usePathname, useRouter } from "next/navigation"
 import Link from "next/link"
+import Cookies from "js-cookie"
+import { logoutUser } from "@/app/api/login/auth"
+import toast from "react-hot-toast"
 import {
   Car,
   LayoutDashboard,
@@ -37,10 +40,41 @@ export function Sidebar() {
   const [isCollapsed, setIsCollapsed] = useState(false)
 
   const handleLogout = () => {
-    localStorage.removeItem("adminSession")
-    router.push("/admin/login")
-  }
+  
+    const confirmLogout = window.confirm("Es-tu sûr de vouloir te déconnecter ?");
 
+    if (confirmLogout) {
+        logoutUser()
+            .then(() => {
+                console.log("Logout successful from component.");
+                // --- Toast de succès (react-hot-toast) ---
+                toast.success("Déconnexion réussie ! À bientôt.", {
+                    duration: 3000,    // Durée en millisecondes (3 secondes)
+                    position: "top-right", // Position du toast
+                    // Tu peux ajouter d'autres options ici comme icon, style, className, etc.
+                });
+                // --- Fin Toast de succès ---
+
+                router.push('/login'); // Redirige l'utilisateur
+            })
+            .catch((error) => {
+                console.error("Logout failed from component:", error);
+                // --- Toast d'erreur (react-hot-toast) ---
+                const errorMessage = error.error || "Une erreur est survenue lors de la déconnexion.";
+                toast.error(`Erreur : ${errorMessage}`, {
+                    duration: 5000,    // Durée en millisecondes (5 secondes pour les erreurs)
+                    position: "top-right",
+                });
+                // --- Fin Toast d'erreur ---
+                
+                // Toujours rediriger même en cas d'erreur pour vider le state local
+                router.push('/login'); 
+            });
+    }
+};
+
+  const admin_email = Cookies.get("admin_email") || ""
+  console.log("Admin Email:", admin_email)
   const navigation = [
     { name: "Tableau de bord", href: "/admin", icon: LayoutDashboard },
     { name: "Réservations", href: "/admin/bookings", icon: FileText },
@@ -52,7 +86,7 @@ export function Sidebar() {
     { name: "Comptes Admin", href: "/admin/accounts", icon: ShieldAlert },
     { name: "Exportation", href: "/admin/export", icon: Download },
     { name: "Paramètres", href: "/admin/settings", icon: Settings },
-    { name: "Site Web", href: "/admin/site-settings", icon: Globe },
+    // { name: "Site Web", href: "/admin/site-settings", icon: Globe },
   ]
 
   const isActive = (path: string) => {
@@ -121,7 +155,7 @@ export function Sidebar() {
                 </Avatar>
                 <div className="flex flex-col items-start">
                   <span className="text-sm font-medium">Administrateur</span>
-                  <span className="text-xs text-gray-500">admin@carloc.cm</span>
+                  <span className="text-xs text-gray-500">{admin_email ? admin_email : "admin@carloc.cm"}</span>
                 </div>
               </Button>
             </DropdownMenuTrigger>
@@ -147,7 +181,7 @@ export function Sidebar() {
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={handleLogout}>
-                <LogOut className="mr-2 h-4 w-4" />
+                <LogOut className="mr-2 h-4 w-4"  />
                 Déconnexion
               </DropdownMenuItem>
             </DropdownMenuContent>
@@ -163,7 +197,7 @@ export function Sidebar() {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56">
-              <div className="px-2 py-1.5 text-sm font-medium">Administrateur</div>
+              <div className="px-2 py-1.5 text-sm font-medium"></div>
               <DropdownMenuSeparator />
               <DropdownMenuItem asChild>
                 <Link href="/admin/profile">
@@ -186,7 +220,7 @@ export function Sidebar() {
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={handleLogout}>
-                <LogOut className="mr-2 h-4 w-4" />
+                <LogOut className="mr-2 h-4 w-4"  />
                 Déconnexion
               </DropdownMenuItem>
             </DropdownMenuContent>

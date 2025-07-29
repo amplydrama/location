@@ -4,6 +4,8 @@ import type React from "react"
 import { useEffect, useState } from "react"
 import { usePathname, useRouter } from "next/navigation"
 import { Sidebar } from "@/components/admin/Sidebar"
+import  Cookies  from "js-cookie";
+import { Toaster } from 'react-hot-toast';
 
 export default function AdminLayout({
   children,
@@ -17,11 +19,11 @@ export default function AdminLayout({
 
   useEffect(() => {
     const checkAuth = () => {
-      const session = localStorage.getItem("adminSession")
+      const session = Cookies.get("adminSession")
       if (session) {
         setIsAuthenticated(true)
-      } else if (pathname !== "/admin/login") {
-        router.push("/admin/login")
+      } else if (pathname !== "/login") {
+        router.push("/login")
         return
       }
       setIsLoading(false)
@@ -31,7 +33,7 @@ export default function AdminLayout({
   }, [pathname, router])
 
   // Si on est sur la page de login, afficher seulement le contenu
-  if (pathname === "/admin/login") {
+  if (pathname === "/login") {
     return <>{children}</>
   }
 
@@ -53,6 +55,29 @@ export default function AdminLayout({
     <div className="flex h-screen bg-gray-50">
       <Sidebar />
       <main className="flex-1 overflow-auto">
+        <Toaster
+          position="bottom-right" // Position des toasts
+          reverseOrder={false}     // Pour que les nouveaux toasts apparaissent en bas
+          toastOptions={{
+            // Styles pour tous les toasts
+            style: {
+              background: '#363636',
+              color: '#fff',
+            },
+            // Styles pour les succès
+            success: {
+              style: {
+                background: '#4CAF50', // Vert pour le succès
+              },
+            },
+            // Styles pour les erreurs
+            error: {
+              style: {
+                background: '#F44336', // Rouge pour l'erreur
+              },
+            },
+          }}
+        />
         <div className="p-6">{children}</div>
       </main>
     </div>
